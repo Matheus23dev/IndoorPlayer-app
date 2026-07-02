@@ -1,36 +1,61 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 
-export default function App() {
+import {
+  NavigationContainer,
+} from '@react-navigation/native';
+
+import {
+  createNativeStackNavigator,
+} from '@react-navigation/native-stack';
+
+import {
+  ActivationScreen,
+} from './src/screens/ActivationScreen';
+
+import {
+  PlayerScreen,
+} from './src/screens/PlayerScreen';
+
+export type RootStackParamList = {
+  Activation: undefined;
+  Player: undefined;
+};
+
+const Stack =
+  createNativeStackNavigator<
+    RootStackParamList
+  >();
+
+function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Indoor Player</Text>
-      <Text style={styles.code}>TV-ABCD1234</Text>
-      <Text style={styles.status}>Aguardando ativação...</Text>
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Activation"
+        screenOptions={{
+          headerShown: false,
+          animation: 'none',
+          contentStyle: {
+            backgroundColor:
+              '#000000',
+          },
+        }}
+      >
+        <Stack.Screen
+          name="Activation"
+          component={
+            ActivationScreen
+          }
+        />
+
+        <Stack.Screen
+          name="Player"
+          component={
+            PlayerScreen
+          }
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#111',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 50,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  code: {
-    fontSize: 32,
-    color: '#00ff88',
-    marginTop: 20,
-  },
-  status: {
-    fontSize: 20,
-    color: '#999',
-    marginTop: 20,
-  },
-});
+export default App;
