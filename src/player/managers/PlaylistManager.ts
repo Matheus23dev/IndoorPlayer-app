@@ -33,13 +33,6 @@ class PlaylistManager {
   private listeners =
     new Set<PlaylistListener>();
 
-  /**
-   * Salva uma nova playlist local.
-   *
-   * Retorna true quando houve mudança.
-   * Retorna false quando a playlist recebida
-   * é igual à que já está armazenada.
-   */
   setPlaylist(
     items: PlayerItem[],
     options: SetPlaylistOptions,
@@ -62,17 +55,10 @@ class PlaylistManager {
       return false;
     }
 
-    this.items =
-      normalizedItems;
-
-    this.playlistId =
-      options.playlistId;
-
-    this.scheduleId =
-      options.scheduleId;
-
-    this.hash =
-      options.hash;
+    this.items = normalizedItems;
+    this.playlistId = options.playlistId;
+    this.scheduleId = options.scheduleId;
+    this.hash = options.hash;
 
     console.log(
       '[PLAYLIST] Playlist atualizada:',
@@ -91,12 +77,6 @@ class PlaylistManager {
     return true;
   }
 
-  /**
-   * Remove a playlist ativa.
-   *
-   * Usado quando não existe mais
-   * nenhum agendamento ativo.
-   */
   clear() {
     const alreadyEmpty =
       this.items.length === 0 &&
@@ -122,11 +102,6 @@ class PlaylistManager {
     return true;
   }
 
-  /**
-   * Retorna uma cópia da playlist.
-   * Isso evita alterações externas
-   * diretamente no estado interno.
-   */
   getCurrent() {
     return [...this.items];
   }
@@ -158,13 +133,6 @@ class PlaylistManager {
     };
   }
 
-  /**
-   * Registra um listener.
-   *
-   * O listener é executado imediatamente
-   * com o estado atual e novamente sempre
-   * que houver mudança na playlist.
-   */
   subscribe(
     listener: PlaylistListener,
   ) {
@@ -175,9 +143,7 @@ class PlaylistManager {
     );
 
     return () => {
-      this.listeners.delete(
-        listener,
-      );
+      this.listeners.delete(listener);
     };
   }
 
@@ -204,8 +170,7 @@ class PlaylistManager {
   ) {
     return [...items].sort(
       (first, second) =>
-        first.order -
-        second.order,
+        first.order - second.order,
     );
   }
 }

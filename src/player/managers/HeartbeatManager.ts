@@ -1,6 +1,10 @@
-import { api } from '../../services/api';
+import {
+  api,
+} from '../../services/api';
 
-import { getDeviceCode } from '../../storage/device';
+import {
+  getDeviceToken,
+} from '../../storage/device';
 
 import {
   playbackManager,
@@ -31,14 +35,18 @@ class HeartbeatManager {
       return;
     }
 
-    this.started = true;
+    this.started =
+      true;
 
     void this.send();
 
     this.interval =
-      setInterval(() => {
-        void this.send();
-      }, this.intervalMs);
+      setInterval(
+        () => {
+          void this.send();
+        },
+        this.intervalMs,
+      );
   }
 
   stop() {
@@ -46,7 +54,8 @@ class HeartbeatManager {
       return;
     }
 
-    this.started = false;
+    this.started =
+      false;
 
     if (this.interval) {
       clearInterval(
@@ -63,18 +72,20 @@ class HeartbeatManager {
       return;
     }
 
-    this.sending = true;
+    this.sending =
+      true;
 
     try {
-      const code =
-        await getDeviceCode();
+      const token =
+        await getDeviceToken();
 
-      if (!code) {
+      if (!token) {
         return;
       }
 
       const playback =
-        playbackManager.getPlaybackState();
+        playbackManager
+          .getPlaybackState();
 
       const currentItem =
         playback.currentItem;
@@ -82,11 +93,10 @@ class HeartbeatManager {
       await api.post(
         '/devices/heartbeat',
         {
-          code,
-
           playlistId:
             currentItem
-              ? playlistManager.getPlaylistId()
+              ? playlistManager
+                  .getPlaylistId()
               : null,
 
           playlistItemId:
@@ -94,7 +104,8 @@ class HeartbeatManager {
             null,
 
           mediaId:
-            currentItem?.media.id ??
+            currentItem
+              ?.media.id ??
             null,
 
           currentTime:
@@ -111,10 +122,19 @@ class HeartbeatManager {
       console.log(
         '[HEARTBEAT] Enviado.',
       );
-    } catch (error) {
+    } catch (error: any) {
       console.log(
         '[HEARTBEAT] Falha ao enviar:',
-        error,
+        {
+          status:
+            error?.response?.status ??
+            null,
+
+          message:
+            error?.response?.data?.message ??
+            error?.message ??
+            'Erro desconhecido',
+        },
       );
     } finally {
       this.sending =

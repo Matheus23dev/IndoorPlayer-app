@@ -1,7 +1,6 @@
 import {
   useEffect,
   useRef,
-  useState,
 } from 'react';
 
 import {
@@ -16,10 +15,21 @@ import {
 import Video from 'react-native-video';
 
 import {
+  useNavigation,
+} from '@react-navigation/native';
+
+import {
   usePlayer,
 } from '../player/hooks/usePlayer';
 
+import {
+  playerSessionUiEvents,
+} from '../services/playerSessionUiEvents';
+
 export function PlayerScreen() {
+  const navigation =
+    useNavigation<any>();
+
   const {
     currentItem,
     playbackKey,
@@ -35,22 +45,36 @@ export function PlayerScreen() {
     next,
   } = usePlayer();
 
-  const [
-    mediaLoading,
-    setMediaLoading,
-  ] = useState(false);
-
   const videoDurationRef =
     useRef(0);
 
   useEffect(() => {
-    setMediaLoading(
-      currentItem?.media
-        .type === 'VIDEO',
-    );
+    return playerSessionUiEvents.subscribe(
+      event => {
+        console.log(
+          '[PLAYER SCREEN] Voltando para ativação:',
+          event,
+        );
 
-    videoDurationRef.current =
-      0;
+        navigation.reset({
+          index:
+            0,
+
+          routes: [
+            {
+              name:
+                'Activation',
+            },
+          ],
+        });
+      },
+    );
+  }, [
+    navigation,
+  ]);
+
+  useEffect(() => {
+    videoDurationRef.current = 0;
   }, [
     currentItem?.id,
     playbackKey,
@@ -70,41 +94,25 @@ export function PlayerScreen() {
       }, 1000);
 
     return () => {
-      clearTimeout(
-        timeout,
-      );
+      clearTimeout(timeout);
     };
   }, [
     currentItem,
     next,
   ]);
 
-  function handleVideoLoadStart() {
-    setMediaLoading(
-      true,
-    );
-  }
-
   function handleVideoLoad(
     data: {
       duration?: number;
     },
   ) {
-    setMediaLoading(
-      false,
-    );
-
     const duration =
-      Number(
-        data.duration,
-      ) || 0;
+      Number(data.duration) || 0;
 
     videoDurationRef.current =
       duration;
 
-    reportVideoLoaded(
-      duration,
-    );
+    reportVideoLoaded(duration);
   }
 
   function handleVideoProgress(
@@ -127,13 +135,9 @@ export function PlayerScreen() {
     }
 
     const remainingTime =
-      duration -
-      data.currentTime;
+      duration - data.currentTime;
 
-    if (
-      remainingTime <=
-      0.25
-    ) {
+    if (remainingTime <= 0.25) {
       finishCurrentVideo();
     }
   }
@@ -141,13 +145,7 @@ export function PlayerScreen() {
   function handleVideoError(
     error: unknown,
   ) {
-    setMediaLoading(
-      false,
-    );
-
-    failCurrentVideo(
-      error,
-    );
+    failCurrentVideo(error);
   }
 
   function handleImageError(
@@ -193,11 +191,7 @@ export function PlayerScreen() {
           Aguardando conteúdo
         </Text>
 
-        <Text
-          style={
-            styles.emptyDescription
-          }
-        >
+        <Text style={styles.emptyDescription}>
           Nenhum agendamento está ativo neste momento.
         </Text>
       </View>
@@ -207,19 +201,15 @@ export function PlayerScreen() {
   const localPath =
     currentItem.media.localPath;
 
+  /*
+   * Sem spinner entre uma mídia e outra.
+   * Se um arquivo local estiver indisponível,
+   * mantém a tela preta e avança automaticamente.
+   */
   if (!localPath) {
     return (
-      <View style={styles.center}>
+      <View style={styles.container}>
         <StatusBar hidden />
-
-        <ActivityIndicator
-          size="large"
-          color="#FFFFFF"
-        />
-
-        <Text style={styles.message}>
-          Preparando próxima mídia...
-        </Text>
       </View>
     );
   }
@@ -237,9 +227,7 @@ export function PlayerScreen() {
           style={styles.media}
           resizeMode="contain"
           fadeDuration={0}
-          onError={
-            handleImageError
-          }
+          onError={handleImageError}
         />
       )}
 
@@ -254,46 +242,17 @@ export function PlayerScreen() {
           paused={false}
           repeat={false}
           controls={false}
-          progressUpdateInterval={
-            250
-          }
-          onLoadStart={
-            handleVideoLoadStart
-          }
-          onLoad={
-            handleVideoLoad
-          }
-          onProgress={
-            handleVideoProgress
-          }
-          onEnd={
-            finishCurrentVideo
-          }
-          onError={
-            handleVideoError
-          }
+          progressUpdateInterval={250}
+          onLoad={handleVideoLoad}
+          onProgress={handleVideoProgress}
+          onEnd={finishCurrentVideo}
+          onError={handleVideoError}
         />
-      )}
-
-      {mediaLoading && (
-        <View
-          style={
-            styles.loadingOverlay
-          }
-          pointerEvents="none"
-        >
-          <ActivityIndicator
-            size="large"
-            color="#FFFFFF"
-          />
-        </View>
       )}
 
       {hasPendingPlaylist && (
         <View
-          style={
-            styles.pendingIndicator
-          }
+          style={styles.pendingIndicator}
           pointerEvents="none"
         />
       )}
@@ -305,117 +264,53 @@ const styles =
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor:
-        '#000000',
+      backgroundColor: '#000000',
     },
 
     media: {
       ...StyleSheet.absoluteFill,
-
-      width:
-        '100%',
-
-      height:
-        '100%',
-
-      backgroundColor:
-        '#000000',
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#000000',
     },
 
     center: {
       flex: 1,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
-      backgroundColor:
-        '#000000',
-
-      paddingHorizontal:
-        32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#000000',
+      paddingHorizontal: 32,
     },
 
     message: {
-      marginTop:
-        20,
-
-      color:
-        '#FFFFFF',
-
-      fontSize:
-        20,
-
-      textAlign:
-        'center',
+      marginTop: 20,
+      color: '#FFFFFF',
+      fontSize: 20,
+      textAlign: 'center',
     },
 
     emptyTitle: {
-      color:
-        '#FFFFFF',
-
-      fontSize:
-        28,
-
-      fontWeight:
-        '700',
-
-      textAlign:
-        'center',
+      color: '#FFFFFF',
+      fontSize: 28,
+      fontWeight: '700',
+      textAlign: 'center',
     },
 
     emptyDescription: {
-      marginTop:
-        12,
-
-      color:
-        '#A3A3A3',
-
-      fontSize:
-        18,
-
-      textAlign:
-        'center',
-    },
-
-    loadingOverlay: {
-      ...StyleSheet.absoluteFill,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
-      backgroundColor:
-        'rgba(0, 0, 0, 0.35)',
+      marginTop: 12,
+      color: '#A3A3A3',
+      fontSize: 18,
+      textAlign: 'center',
     },
 
     pendingIndicator: {
-      position:
-        'absolute',
-
-      top:
-        16,
-
-      right:
-        16,
-
-      width:
-        8,
-
-      height:
-        8,
-
-      borderRadius:
-        4,
-
-      backgroundColor:
-        '#FFFFFF',
-
-      opacity:
-        0.25,
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#FFFFFF',
+      opacity: 0.25,
     },
   });

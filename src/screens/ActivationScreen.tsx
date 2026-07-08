@@ -15,18 +15,48 @@ import {
   useNavigation,
 } from '@react-navigation/native';
 
-import { api } from '../services/api';
+import {
+  api,
+} from '../services/api';
 
 import {
+  getDeviceActivationSecret,
   getDeviceCode,
-  removeDeviceCode,
-  saveDeviceCode,
+  getDeviceToken,
+  removeDeviceRegistration,
+  saveDeviceRegistration,
+  saveDeviceToken,
 } from '../storage/device';
 
-type DeviceResponse = {
-  id: string;
-  code: string;
-  isLinked: boolean;
+type RegisterDeviceResponse = {
+  id:
+    string;
+
+  code:
+    string;
+
+  isLinked:
+    boolean;
+
+  activationSecret:
+    string;
+};
+
+type ActivateDeviceResponse = {
+  id:
+    string;
+
+  code:
+    string;
+
+  name:
+    string | null;
+
+  isLinked:
+    boolean;
+
+  deviceToken:
+    string | null;
 };
 
 export function ActivationScreen() {
@@ -34,63 +64,131 @@ export function ActivationScreen() {
     useNavigation<any>();
 
   const mountedRef =
-    useRef(false);
+    useRef(
+      false,
+    );
 
   const timeoutRef =
     useRef<
-      ReturnType<typeof setTimeout>
-      | undefined
-    >(undefined);
+      ReturnType<
+        typeof setTimeout
+      > |
+      undefined
+    >(
+      undefined,
+    );
 
   const [
     code,
     setCode,
-  ] = useState<string | null>(null);
+  ] =
+    useState<
+      string | null
+    >(
+      null,
+    );
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] =
+    useState(
+      true,
+    );
 
   const [
     message,
     setMessage,
-  ] = useState(
-    'Preparando ativação...',
+  ] =
+    useState(
+      'Preparando ativação...',
+    );
+
+  useEffect(
+    () => {
+      mountedRef.current =
+        true;
+
+      void initialize();
+
+      return () => {
+        mountedRef.current =
+          false;
+
+        if (
+          timeoutRef.current
+        ) {
+          clearTimeout(
+            timeoutRef.current,
+          );
+        }
+      };
+    },
+    [],
   );
-
-  useEffect(() => {
-    mountedRef.current = true;
-
-    void initialize();
-
-    return () => {
-      mountedRef.current = false;
-
-      if (timeoutRef.current) {
-        clearTimeout(
-          timeoutRef.current,
-        );
-      }
-    };
-  }, []);
 
   async function initialize() {
     try {
-      setLoading(true);
+      setLoading(
+        true,
+      );
+
+      const existingToken =
+        await getDeviceToken();
 
       const savedCode =
         await getDeviceCode();
 
-      if (savedCode) {
-        setCode(savedCode);
+      const activationSecret =
+        await getDeviceActivationSecret();
 
-        setMessage(
-          'Verificando dispositivo...',
+      /*
+       * Com token e programação local, abrimos
+       * o player mesmo sem internet.
+       */
+      if (
+        existingToken &&
+        savedCode
+      ) {
+        setCode(
+          savedCode,
         );
 
-        await checkDevice(
+        goToPlayer();
+
+        return;
+      }
+
+      /*
+       * Código antigo, criado antes da autenticação
+       * segura, não possui activationSecret.
+       */
+      if (
+        savedCode &&
+        !activationSecret
+      ) {
+        await removeDeviceRegistration();
+
+        await registerDevice();
+
+        return;
+      }
+
+      if (
+        savedCode &&
+        activationSecret
+      ) {
+        setCode(
           savedCode,
+        );
+
+        setMessage(
+          'Verificando vínculo seguro...',
+        );
+
+        await activateDevice(
+          savedCode,
+          activationSecret,
         );
 
         return;
@@ -103,14 +201,22 @@ export function ActivationScreen() {
         error,
       );
 
-      setMessage(
-        'Erro ao iniciar ativação. Tentando novamente...',
-      );
+      if (
+        mountedRef.current
+      ) {
+        setMessage(
+          'Erro ao iniciar ativação. Tentando novamente...',
+        );
 
-      scheduleRetryInitialize();
+        scheduleRetryInitialize();
+      }
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
+      if (
+        mountedRef.current
+      ) {
+        setLoading(
+          false,
+        );
       }
     }
   }
@@ -122,34 +228,42 @@ export function ActivationScreen() {
       );
 
       const response =
-        await api.post<DeviceResponse>(
+        await api.post<
+          RegisterDeviceResponse
+        >(
           '/devices/register',
         );
 
-      const deviceCode =
-        response.data.code;
+      const registration = {
+        code:
+          response.data.code,
 
-      await saveDeviceCode(
-        deviceCode,
+        activationSecret:
+          response.data
+            .activationSecret,
+      };
+
+      await saveDeviceRegistration(
+        registration,
       );
 
-      if (!mountedRef.current) {
+      if (
+        !mountedRef.current
+      ) {
         return;
       }
 
-      setCode(deviceCode);
+      setCode(
+        registration.code,
+      );
 
       setMessage(
         'Aguardando vínculo no painel...',
       );
 
-      if (response.data.isLinked) {
-        goToPlayer();
-        return;
-      }
-
-      scheduleCheck(
-        deviceCode,
+      scheduleActivationCheck(
+        registration.code,
+        registration.activationSecret,
       );
     } catch (error) {
       console.log(
@@ -157,30 +271,58 @@ export function ActivationScreen() {
         error,
       );
 
-      setMessage(
-        'Sem conexão com o servidor. Tentando registrar novamente...',
-      );
+      if (
+        mountedRef.current
+      ) {
+        setMessage(
+          'Sem conexão com o servidor. Tentando registrar novamente...',
+        );
 
-      scheduleRetryInitialize();
+        scheduleRetryInitialize();
+      }
     }
   }
 
-  async function checkDevice(
-    deviceCode: string,
+  async function activateDevice(
+    deviceCode:
+      string,
+
+    activationSecret:
+      string,
   ) {
     try {
       const response =
-        await api.get<DeviceResponse>(
-          `/devices/code/${deviceCode}`,
+        await api.post<
+          ActivateDeviceResponse
+        >(
+          '/devices/activate',
+          {
+            code:
+              deviceCode,
+
+            activationSecret,
+          },
         );
 
-      if (!mountedRef.current) {
+      if (
+        !mountedRef.current
+      ) {
         return;
       }
 
-      if (response.data.isLinked) {
+      if (
+        response.data
+          .isLinked &&
+        response.data
+          .deviceToken
+      ) {
+        await saveDeviceToken(
+          response.data
+            .deviceToken,
+        );
+
         setMessage(
-          'Dispositivo vinculado. Abrindo player...',
+          'Dispositivo autenticado. Abrindo player...',
         );
 
         goToPlayer();
@@ -192,119 +334,190 @@ export function ActivationScreen() {
         'Aguardando vínculo no painel...',
       );
 
-      scheduleCheck(
+      scheduleActivationCheck(
         deviceCode,
+        activationSecret,
       );
     } catch (error: any) {
       const status =
-        error?.response?.status;
+        error?.response
+          ?.status;
 
       console.log(
-        '[ACTIVATION] Erro ao verificar:',
+        '[ACTIVATION] Erro ao ativar:',
         error,
       );
 
       /*
-       * Se o backend respondeu 404,
-       * esse código não existe mais.
-       * Aí sim registramos outro.
+       * 404: TV foi excluída.
+       * 409: registro antigo sem secret seguro.
        */
-      if (status === 404) {
-        await removeDeviceCode();
+      if (
+        status === 404 ||
+        status === 409
+      ) {
+        await removeDeviceRegistration();
 
-        if (!mountedRef.current) {
+        if (
+          !mountedRef.current
+        ) {
           return;
         }
 
-        setCode(null);
+        setCode(
+          null,
+        );
 
         await registerDevice();
 
         return;
       }
 
-      /*
-       * Se foi erro de internet, não cria
-       * código novo. Mantém o código salvo
-       * e tenta consultar novamente.
-       */
-      if (mountedRef.current) {
+      if (
+        status === 401 ||
+        status === 403
+      ) {
+        await removeDeviceRegistration();
+
+        if (
+          mountedRef.current
+        ) {
+          setCode(
+            null,
+          );
+
+          await registerDevice();
+        }
+
+        return;
+      }
+
+      if (
+        mountedRef.current
+      ) {
         setMessage(
-          'Sem conexão. Mantendo código salvo e tentando novamente...',
+          'Sem conexão. Mantendo o código salvo e tentando novamente...',
         );
 
-        scheduleCheck(
+        scheduleActivationCheck(
           deviceCode,
+          activationSecret,
         );
       }
     }
   }
 
-  function scheduleCheck(
-    deviceCode: string,
+  function scheduleActivationCheck(
+    deviceCode:
+      string,
+
+    activationSecret:
+      string,
   ) {
-    if (timeoutRef.current) {
+    if (
+      timeoutRef.current
+    ) {
       clearTimeout(
         timeoutRef.current,
       );
     }
 
     timeoutRef.current =
-      setTimeout(() => {
-        void checkDevice(
-          deviceCode,
-        );
-      }, 3000);
+      setTimeout(
+        () => {
+          void activateDevice(
+            deviceCode,
+            activationSecret,
+          );
+        },
+        3_000,
+      );
   }
 
   function scheduleRetryInitialize() {
-    if (timeoutRef.current) {
+    if (
+      timeoutRef.current
+    ) {
       clearTimeout(
         timeoutRef.current,
       );
     }
 
     timeoutRef.current =
-      setTimeout(() => {
-        void initialize();
-      }, 5000);
+      setTimeout(
+        () => {
+          void initialize();
+        },
+        5_000,
+      );
   }
 
   function goToPlayer() {
-    if (timeoutRef.current) {
+    if (
+      timeoutRef.current
+    ) {
       clearTimeout(
         timeoutRef.current,
       );
+
+      timeoutRef.current =
+        undefined;
     }
 
     navigation.reset({
-      index: 0,
+      index:
+        0,
+
       routes: [
         {
-          name: 'Player',
+          name:
+            'Player',
         },
       ],
     });
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
+    <View
+      style={
+        styles.container
+      }
+    >
+      <Text
+        style={
+          styles.title
+        }
+      >
         Ativação do Player
       </Text>
 
-      <Text style={styles.description}>
-        Use este código no painel
-        administrador para vincular esta TV.
+      <Text
+        style={
+          styles.description
+        }
+      >
+        Use este código no painel administrador para vincular esta TV.
       </Text>
 
-      <View style={styles.codeBox}>
-        <Text style={styles.code}>
+      <View
+        style={
+          styles.codeBox
+        }
+      >
+        <Text
+          style={
+            styles.code
+          }
+        >
           {code ?? '------'}
         </Text>
       </View>
 
-      <View style={styles.statusBox}>
+      <View
+        style={
+          styles.statusBox
+        }
+      >
         {loading && (
           <ActivityIndicator
             size="small"
@@ -312,7 +525,11 @@ export function ActivationScreen() {
           />
         )}
 
-        <Text style={styles.message}>
+        <Text
+          style={
+            styles.message
+          }
+        >
           {message}
         </Text>
       </View>
@@ -323,57 +540,118 @@ export function ActivationScreen() {
 const styles =
   StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: '#000000',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
+      flex:
+        1,
+
+      backgroundColor:
+        '#000000',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      paddingHorizontal:
+        32,
     },
 
     title: {
-      color: '#FFFFFF',
-      fontSize: 32,
-      fontWeight: '800',
-      textAlign: 'center',
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        32,
+
+      fontWeight:
+        '800',
+
+      textAlign:
+        'center',
     },
 
     description: {
-      marginTop: 16,
-      color: '#A3A3A3',
-      fontSize: 18,
-      textAlign: 'center',
-      lineHeight: 26,
-      maxWidth: 620,
+      marginTop:
+        16,
+
+      color:
+        '#A3A3A3',
+
+      fontSize:
+        18,
+
+      textAlign:
+        'center',
+
+      lineHeight:
+        26,
+
+      maxWidth:
+        620,
     },
 
     codeBox: {
-      marginTop: 40,
-      paddingVertical: 28,
-      paddingHorizontal: 52,
-      borderRadius: 18,
-      borderWidth: 2,
-      borderColor: '#FFFFFF',
-      backgroundColor: '#111111',
+      marginTop:
+        40,
+
+      paddingVertical:
+        28,
+
+      paddingHorizontal:
+        52,
+
+      borderRadius:
+        18,
+
+      borderWidth:
+        2,
+
+      borderColor:
+        '#FFFFFF',
+
+      backgroundColor:
+        '#111111',
     },
 
     code: {
-      color: '#FFFFFF',
-      fontSize: 52,
-      fontWeight: '900',
-      letterSpacing: 8,
-      textAlign: 'center',
+      color:
+        '#FFFFFF',
+
+      fontSize:
+        52,
+
+      fontWeight:
+        '900',
+
+      letterSpacing:
+        8,
+
+      textAlign:
+        'center',
     },
 
     statusBox: {
-      marginTop: 32,
-      alignItems: 'center',
-      gap: 12,
+      marginTop:
+        32,
+
+      alignItems:
+        'center',
+
+      gap:
+        12,
     },
 
     message: {
-      color: '#D4D4D4',
-      fontSize: 16,
-      textAlign: 'center',
-      maxWidth: 620,
+      color:
+        '#D4D4D4',
+
+      fontSize:
+        16,
+
+      textAlign:
+        'center',
+
+      maxWidth:
+        620,
     },
   });
