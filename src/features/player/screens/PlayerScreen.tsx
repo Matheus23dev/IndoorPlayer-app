@@ -165,7 +165,6 @@ export function PlayerScreen() {
             source={{ uri: localPath }}
             style={mediaStyle}
             viewType={ViewType.TEXTURE}
-            renderToHardwareTextureAndroid={orientation === 'PORTRAIT'}
             resizeMode="contain"
             paused={false}
             repeat={false}
