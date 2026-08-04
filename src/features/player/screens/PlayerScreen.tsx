@@ -5,6 +5,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Video from 'react-native-video';
@@ -13,7 +14,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../../app/App';
 import { playerSessionUiEvents } from '../../../core/events/playerSessionUiEvents';
-import { setScreenOrientation } from '../../../core/native/screenOrientation';
+import {
+  resolveOrientationViewport,
+  setScreenOrientation,
+} from '../../../core/native/screenOrientation';
 import { usePlayer } from '../hooks/usePlayer';
 import { useVideoPlayback } from '../hooks/useVideoPlayback';
 
@@ -23,6 +27,7 @@ type PlayerNavigation = NativeStackNavigationProp<RootStackParamList, 'Player'>;
 
 export function PlayerScreen() {
   const navigation = useNavigation<PlayerNavigation>();
+  const windowDimensions = useWindowDimensions();
 
   const {
     currentItem,
@@ -49,6 +54,23 @@ export function PlayerScreen() {
       reportLoaded: reportVideoLoaded,
       reportProgress: reportVideoProgress,
     });
+
+  const viewport = resolveOrientationViewport(
+    orientation,
+    windowDimensions.width,
+    windowDimensions.height,
+  );
+
+  const viewportStyle = viewport.usesFallback
+    ? [
+        styles.viewport,
+        {
+          width: viewport.width,
+          height: viewport.height,
+          transform: [{ rotate: viewport.rotation }],
+        },
+      ]
+    : styles.viewport;
 
   useEffect(() => {
     void setScreenOrientation(orientation);
@@ -123,39 +145,41 @@ export function PlayerScreen() {
     <View style={styles.container}>
       <StatusBar hidden />
 
-      {isImage && (
-        <Image
-          key={`${currentItem.id}-${playbackKey}`}
-          source={{ uri: localPath }}
-          style={styles.media}
-          resizeMode="contain"
-          fadeDuration={0}
-          onError={handleImageError}
-        />
-      )}
+      <View style={viewportStyle}>
+        {isImage && (
+          <Image
+            key={`${currentItem.id}-${playbackKey}`}
+            source={{ uri: localPath }}
+            style={styles.media}
+            resizeMode="contain"
+            fadeDuration={0}
+            onError={handleImageError}
+          />
+        )}
 
-      {isVideo && (
-        <Video
-          key={`${currentItem.id}-${playbackKey}`}
-          source={{ uri: localPath }}
-          style={styles.media}
-          resizeMode="contain"
-          paused={false}
-          repeat={false}
-          controls={false}
-          muted={muted}
-          volume={muted ? 0 : 1}
-          progressUpdateInterval={250}
-          onLoad={handleLoad}
-          onProgress={handleProgress}
-          onEnd={handleEnd}
-          onError={handleError}
-        />
-      )}
+        {isVideo && (
+          <Video
+            key={`${currentItem.id}-${playbackKey}`}
+            source={{ uri: localPath }}
+            style={styles.media}
+            resizeMode="contain"
+            paused={false}
+            repeat={false}
+            controls={false}
+            muted={muted}
+            volume={muted ? 0 : 1}
+            progressUpdateInterval={250}
+            onLoad={handleLoad}
+            onProgress={handleProgress}
+            onEnd={handleEnd}
+            onError={handleError}
+          />
+        )}
 
-      {hasPendingPlaylist && (
-        <View style={styles.pendingIndicator} pointerEvents="none" />
-      )}
+        {hasPendingPlaylist && (
+          <View style={styles.pendingIndicator} pointerEvents="none" />
+        )}
+      </View>
     </View>
   );
 }
@@ -163,6 +187,15 @@ export function PlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+  },
+  viewport: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
     backgroundColor: '#000000',
   },
   media: {
