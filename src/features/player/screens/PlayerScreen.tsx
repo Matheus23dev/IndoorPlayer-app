@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Video from 'react-native-video';
+import Video, { ViewType } from 'react-native-video';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -162,6 +162,7 @@ export function PlayerScreen() {
             key={`${currentItem.id}-${playbackKey}`}
             source={{ uri: localPath }}
             style={styles.media}
+            viewType={ViewType.TEXTURE}
             resizeMode="contain"
             paused={false}
             repeat={false}
