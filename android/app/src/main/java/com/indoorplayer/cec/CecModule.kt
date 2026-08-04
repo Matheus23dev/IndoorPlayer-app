@@ -8,37 +8,34 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import java.io.File
-import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class CecModule(
-    reactContext:
-        ReactApplicationContext,
+    reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(
     reactContext,
 ) {
-
     companion object {
         private const val TAG =
             "INDOOR_CEC"
     }
 
-    private val appContext:
-        Context =
+    private val appContext: Context =
         reactContext.applicationContext
 
-    private val executor =
+    private val cecExecutor =
         CecCommandExecutor(
             appContext,
         )
 
-    private val logFile:
-        File by lazy {
+    private val logFile: File by lazy {
         val directory =
-            appContext
-                .getExternalFilesDir(
-                    null,
-                )
-                ?: appContext.filesDir
+            appContext.getExternalFilesDir(
+                null,
+            ) ?: appContext.filesDir
 
         File(
             directory,
@@ -46,147 +43,151 @@ class CecModule(
         )
     }
 
-    override fun getName():
-        String =
+    override fun getName(): String =
         "CecModule"
 
     @ReactMethod
     fun turnOn(
-        reason:
-            String,
-
-        occurrenceId:
-            String?,
-
-        promise:
-            Promise,
+        reason: String,
+        occurrenceId: String?,
+        promise: Promise,
     ) {
-        execute(
+        executeCommand(
             action = "ON",
             reason = reason,
             occurrenceId = occurrenceId,
             promise = promise,
         ) {
-            executor.turnOn()
+            cecExecutor.turnOn()
         }
     }
 
     @ReactMethod
     fun standby(
-        reason:
-            String,
-
-        occurrenceId:
-            String?,
-
-        promise:
-            Promise,
+        reason: String,
+        occurrenceId: String?,
+        promise: Promise,
     ) {
-        execute(
+        executeCommand(
             action = "STANDBY",
             reason = reason,
             occurrenceId = occurrenceId,
             promise = promise,
         ) {
-            executor.standby()
+            cecExecutor.standby()
         }
     }
 
     @ReactMethod
     fun diagnose(
-        promise:
-            Promise,
+        promise: Promise,
     ) {
-        execute(
+        executeCommand(
             action = "DIAGNOSE",
             reason = "MANUAL_DIAGNOSE",
             occurrenceId = null,
             promise = promise,
         ) {
-            executor.diagnose()
+            cecExecutor.diagnose()
         }
     }
 
-    private fun execute(
-        action:
-            String,
-
-        reason:
-            String,
-
-        occurrenceId:
-            String?,
-
-        promise:
-            Promise,
-
-        operation:
-            () -> CecCommandResult,
+    @ReactMethod
+    fun queryPowerStatus(
+        promise: Promise,
     ) {
         Thread {
-            val requestLine =
+            val action =
+                "QUERY_POWER_STATUS"
+
+            writeLog(
+                buildLogLine(
+                    phase = "REQUEST",
+                    action = action,
+                    reason = "WATCHDOG_CHECK",
+                    occurrenceId = null,
+                    detail = "",
+                ),
+            )
+
+            try {
+                val status =
+                    cecExecutor.queryPowerStatus()
+
+                writeLog(
+                    buildLogLine(
+                        phase = "SUCCESS",
+                        action = action,
+                        reason = "WATCHDOG_CHECK",
+                        occurrenceId = null,
+                        detail = status ?: "UNKNOWN",
+                    ),
+                )
+
+                promise.resolve(
+                    status,
+                )
+            } catch (error: Throwable) {
+                writeLog(
+                    buildLogLine(
+                        phase = "ERROR",
+                        action = action,
+                        reason = "WATCHDOG_CHECK",
+                        occurrenceId = null,
+                        detail =
+                            error.message
+                                ?: error.javaClass.name,
+                    ),
+                )
+
+                promise.reject(
+                    "CEC_QUERY_POWER_STATUS_FAILED",
+                    error.message,
+                    error,
+                )
+            }
+        }.start()
+    }
+
+    private fun executeCommand(
+        action: String,
+        reason: String,
+        occurrenceId: String?,
+        promise: Promise,
+        operation: () -> CecCommandResult,
+    ) {
+        Thread {
+            writeLog(
                 buildLogLine(
                     phase = "REQUEST",
                     action = action,
                     reason = reason,
                     occurrenceId = occurrenceId,
                     detail = "",
-                )
-
-            writeLog(
-                requestLine,
+                ),
             )
 
             try {
                 val result =
                     operation()
 
-                val successLine =
+                writeLog(
                     buildLogLine(
                         phase = "SUCCESS",
                         action = action,
                         reason = reason,
                         occurrenceId = occurrenceId,
                         detail = result.output,
-                    )
-
-                writeLog(
-                    successLine,
+                    ),
                 )
-
-                val response =
-                    Arguments
-                        .createMap()
-                        .apply {
-                            putString(
-                                "action",
-                                result.action,
-                            )
-
-                            putString(
-                                "executable",
-                                result.executable,
-                            )
-
-                            putString(
-                                "output",
-                                result.output,
-                            )
-
-                            putString(
-                                "logPath",
-                                logFile.absolutePath,
-                            )
-                        }
 
                 promise.resolve(
-                    response,
+                    createResultMap(
+                        result,
+                    ),
                 )
-            } catch (
-                error:
-                    Throwable
-            ) {
-                val errorLine =
+            } catch (error: Throwable) {
+                writeLog(
                     buildLogLine(
                         phase = "ERROR",
                         action = action,
@@ -194,13 +195,8 @@ class CecModule(
                         occurrenceId = occurrenceId,
                         detail =
                             error.message
-                                ?: error
-                                    .javaClass
-                                    .name,
-                    )
-
-                writeLog(
-                    errorLine,
+                                ?: error.javaClass.name,
+                    ),
                 )
 
                 promise.reject(
@@ -212,27 +208,43 @@ class CecModule(
         }.start()
     }
 
+    private fun createResultMap(
+        result: CecCommandResult,
+    ) =
+        Arguments
+            .createMap()
+            .apply {
+                putString(
+                    "action",
+                    result.action,
+                )
+
+                putString(
+                    "executable",
+                    result.executable,
+                )
+
+                putString(
+                    "output",
+                    result.output,
+                )
+
+                putString(
+                    "logPath",
+                    logFile.absolutePath,
+                )
+            }
+
     private fun buildLogLine(
-        phase:
-            String,
-
-        action:
-            String,
-
-        reason:
-            String,
-
-        occurrenceId:
-            String?,
-
-        detail:
-            String,
+        phase: String,
+        action: String,
+        reason: String,
+        occurrenceId: String?,
+        detail: String,
     ): String =
         buildString {
             append(
-                Instant
-                    .now()
-                    .toString(),
+                getCurrentTimestamp(),
             )
 
             append(
@@ -256,7 +268,9 @@ class CecModule(
             )
 
             append(
-                reason,
+                sanitizeLogValue(
+                    reason,
+                ),
             )
 
             append(
@@ -264,29 +278,24 @@ class CecModule(
             )
 
             append(
-                occurrenceId
-                    ?: "null",
+                occurrenceId ?: "null",
             )
 
-            if (
-                detail.isNotBlank()
-            ) {
+            if (detail.isNotBlank()) {
                 append(
                     " detail=",
                 )
 
                 append(
-                    detail.replace(
-                        '\n',
-                        ' ',
+                    sanitizeLogValue(
+                        detail,
                     ),
                 )
             }
         }
 
     private fun writeLog(
-        line:
-            String,
+        line: String,
     ) {
         Log.i(
             TAG,
@@ -301,15 +310,43 @@ class CecModule(
             logFile.appendText(
                 "$line\n",
             )
-        } catch (
-            error:
-                Throwable
-        ) {
+        } catch (error: Throwable) {
             Log.e(
                 TAG,
                 "Falha ao salvar log persistente.",
                 error,
             )
         }
+    }
+
+    private fun sanitizeLogValue(
+        value: String,
+    ): String =
+        value
+            .replace(
+                '\n',
+                ' ',
+            )
+            .replace(
+                '\r',
+                ' ',
+            )
+            .trim()
+
+    private fun getCurrentTimestamp(): String {
+        val formatter =
+            SimpleDateFormat(
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                Locale.US,
+            )
+
+        formatter.timeZone =
+            TimeZone.getTimeZone(
+                "UTC",
+            )
+
+        return formatter.format(
+            Date(),
+        )
     }
 }

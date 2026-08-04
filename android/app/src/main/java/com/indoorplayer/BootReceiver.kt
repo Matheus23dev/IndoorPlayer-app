@@ -6,47 +6,35 @@ import android.content.Intent
 import android.util.Log
 
 class BootReceiver : BroadcastReceiver() {
+    companion object {
+        private const val TAG =
+            "BOOT_RECEIVER"
+
+        private const val QUICKBOOT_POWERON =
+            "android.intent.action.QUICKBOOT_POWERON"
+
+        private const val HTC_QUICKBOOT_POWERON =
+            "com.htc.intent.action.QUICKBOOT_POWERON"
+    }
 
     override fun onReceive(
         context: Context,
         intent: Intent?,
     ) {
-        val action = intent?.action
+        val action =
+            intent?.action
 
         Log.i(
-            "BOOT_RECEIVER",
+            TAG,
             "Evento recebido: $action",
         )
 
-        val isBootCompleted =
-            action == Intent.ACTION_BOOT_COMPLETED ||
-            action == "android.intent.action.QUICKBOOT_POWERON"
-
-        if (!isBootCompleted) {
+        if (!isBootAction(action)) {
             return
         }
 
         val launchIntent =
-            context.packageManager
-                .getLaunchIntentForPackage(
-                    context.packageName,
-                )
-                ?.apply {
-                    addFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP,
-                    )
-                }
-
-        if (launchIntent == null) {
-            Log.e(
-                "BOOT_RECEIVER",
-                "Não foi possível encontrar a MainActivity.",
-            )
-
-            return
-        }
+            createLaunchIntent(context)
 
         try {
             context.startActivity(
@@ -54,14 +42,49 @@ class BootReceiver : BroadcastReceiver() {
             )
 
             Log.i(
-                "BOOT_RECEIVER",
+                TAG,
                 "IndoorPlayer iniciado automaticamente.",
             )
         } catch (error: Exception) {
             Log.e(
-                "BOOT_RECEIVER",
+                TAG,
                 "Erro ao iniciar o IndoorPlayer.",
                 error,
+            )
+        }
+    }
+
+    private fun isBootAction(
+        action: String?,
+    ): Boolean {
+        return (
+            action == Intent.ACTION_BOOT_COMPLETED ||
+            action == QUICKBOOT_POWERON ||
+            action == HTC_QUICKBOOT_POWERON
+        )
+    }
+
+    private fun createLaunchIntent(
+        context: Context,
+    ): Intent {
+        val packageLaunchIntent =
+            context.packageManager
+                .getLaunchIntentForPackage(
+                    context.packageName,
+                )
+
+        val launchIntent =
+            packageLaunchIntent
+                ?: Intent(
+                    context,
+                    MainActivity::class.java,
+                )
+
+        return launchIntent.apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
             )
         }
     }

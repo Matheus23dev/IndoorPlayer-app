@@ -1,97 +1,52 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# IndoorPlayer
 
-# Getting Started
+Aplicativo Android/React Native para ativar um dispositivo, sincronizar a programação e reproduzir mídias locais de forma contínua.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Configuração
 
-## Step 1: Start Metro
+1. Copie `.env.example` para `.env`.
+2. Troque `192.168.137.234` pelo IP do computador que executa a API.
+3. Confirme que a TV e o servidor estão na mesma rede e que as portas necessárias estão liberadas no firewall.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+```env
+API_BASE_URL=http://192.168.137.234:3000
+```
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+O app usa `API_BASE_URL` para as requisições e deriva automaticamente os downloads de mídia em `API_BASE_URL/files/indoor-player-api`.
+
+## Comandos
 
 ```sh
-# Using npm
+npm install
 npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
 npm run android
-
-# OR using Yarn
-yarn android
+npm run validate
+npm run android:release
 ```
 
-### iOS
+O APK release é gerado em `android/app/build/outputs/apk/release/app-release.apk`.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+O Gradle carrega `.env` por meio do `react-native-config`; sempre gere um novo APK depois de trocar o IP. O build imprime `Reading env from: .env` quando a configuração foi incorporada.
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+## Estrutura
 
-```sh
-bundle install
+```text
+src/
+├── app/                         entrada e navegação do aplicativo
+├── core/
+│   ├── api/                     cliente HTTP e URLs
+│   ├── events/                  eventos globais de sessão
+│   └── storage/                 persistência do dispositivo
+├── features/
+│   ├── activation/              tela e regras de ativação
+│   └── player/
+│       ├── domain/              normalização e assinaturas
+│       ├── engine/              ciclo de vida do player
+│       ├── hooks/               integração React
+│       ├── managers/            sincronização, cache e reprodução
+│       ├── power/               controle de energia/CEC
+│       ├── screens/             interface do player
+│       ├── state/               estado em memória
+│       └── types/               contratos do domínio
+└── types/                       declarações externas
 ```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.

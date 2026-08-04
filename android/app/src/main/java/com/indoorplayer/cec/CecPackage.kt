@@ -5,22 +5,20 @@ import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
 
-class CecPackage :
-    ReactPackage {
-
+class CecPackage : ReactPackage {
     override fun createNativeModules(
-        reactContext:
-            ReactApplicationContext,
-    ): List<NativeModule> =
-        listOf(
+        reactContext: ReactApplicationContext,
+    ): List<NativeModule> {
+        return listOf(
             CecModule(
                 reactContext,
             ),
         )
+    }
 
     override fun createViewManagers(
-        reactContext:
-            ReactApplicationContext,
-    ): List<ViewManager<*, *>> =
-        emptyList()
+        reactContext: ReactApplicationContext,
+    ): List<ViewManager<*, *>> {
+        return emptyList()
+    }
 }

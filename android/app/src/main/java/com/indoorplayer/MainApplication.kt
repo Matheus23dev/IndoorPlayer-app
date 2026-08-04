@@ -9,25 +9,25 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 
 import com.indoorplayer.cec.CecPackage
+import com.indoorplayer.orientation.ScreenOrientationPackage
 
 class MainApplication :
     Application(),
     ReactApplication {
 
-    override val reactHost:
-        ReactHost by lazy {
+    override val reactHost: ReactHost by lazy {
         getDefaultReactHost(
-            context =
-                applicationContext,
+            context = applicationContext,
 
             packageList =
-                PackageList(
-                    this,
-                )
+                PackageList(this)
                     .packages
                     .apply {
                         add(
                             CecPackage(),
+                        )
+                        add(
+                            ScreenOrientationPackage(),
                         )
                     },
         )
