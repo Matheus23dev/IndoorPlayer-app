@@ -61,16 +61,18 @@ export function PlayerScreen() {
     windowDimensions.height,
   );
 
-  const viewportStyle = viewport.rotated
+  const mediaStyle = viewport.rotated
     ? [
-        styles.viewport,
+        styles.media,
         {
           width: viewport.width,
           height: viewport.height,
+          left: (windowDimensions.width - viewport.width) / 2,
+          top: (windowDimensions.height - viewport.height) / 2,
           transform: [{ rotate: viewport.rotation }],
         },
       ]
-    : styles.viewport;
+    : styles.media;
 
   useEffect(() => {
     // A TV Box deve continuar em landscape. Playlists verticais são giradas
@@ -145,12 +147,12 @@ export function PlayerScreen() {
     <View style={styles.container}>
       <StatusBar hidden />
 
-      <View style={viewportStyle}>
+      <View style={styles.viewport}>
         {isImage && (
           <Image
-            key={`${currentItem.id}-${playbackKey}`}
+            key={`${currentItem.id}-${playbackKey}-${orientation}`}
             source={{ uri: localPath }}
-            style={styles.media}
+            style={mediaStyle}
             resizeMode="contain"
             fadeDuration={0}
             onError={handleImageError}
@@ -159,10 +161,11 @@ export function PlayerScreen() {
 
         {isVideo && (
           <Video
-            key={`${currentItem.id}-${playbackKey}`}
+            key={`${currentItem.id}-${playbackKey}-${orientation}`}
             source={{ uri: localPath }}
-            style={styles.media}
+            style={mediaStyle}
             viewType={ViewType.TEXTURE}
+            renderToHardwareTextureAndroid={orientation === 'PORTRAIT'}
             resizeMode="contain"
             paused={false}
             repeat={false}
@@ -200,7 +203,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   media: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    left: 0,
+    top: 0,
     width: '100%',
     height: '100%',
     backgroundColor: '#000000',
