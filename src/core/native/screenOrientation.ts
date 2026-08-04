@@ -10,7 +10,7 @@ export interface OrientationViewportLayout {
   width: number;
   height: number;
   rotation: '0deg' | '90deg' | '-90deg';
-  usesFallback: boolean;
+  rotated: boolean;
 }
 
 const nativeModule = NativeModules.ScreenOrientation as
@@ -37,24 +37,19 @@ export function resolveOrientationViewport(
   windowWidth: number,
   windowHeight: number,
 ): OrientationViewportLayout {
-  const needsFallback =
-    orientation === 'PORTRAIT'
-      ? windowWidth > windowHeight
-      : windowHeight > windowWidth;
-
-  if (!needsFallback) {
+  if (orientation === 'LANDSCAPE') {
     return {
       width: windowWidth,
       height: windowHeight,
       rotation: '0deg',
-      usesFallback: false,
+      rotated: false,
     };
   }
 
   return {
     width: windowHeight,
     height: windowWidth,
-    rotation: orientation === 'PORTRAIT' ? '90deg' : '-90deg',
-    usesFallback: true,
+    rotation: '90deg',
+    rotated: true,
   };
 }

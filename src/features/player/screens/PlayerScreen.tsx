@@ -61,7 +61,7 @@ export function PlayerScreen() {
     windowDimensions.height,
   );
 
-  const viewportStyle = viewport.usesFallback
+  const viewportStyle = viewport.rotated
     ? [
         styles.viewport,
         {
@@ -73,10 +73,10 @@ export function PlayerScreen() {
     : styles.viewport;
 
   useEffect(() => {
-    void setScreenOrientation(orientation);
-  }, [orientation]);
+    // A TV Box deve continuar em landscape. Playlists verticais são giradas
+    // dentro desse canvas para ficarem corretas quando a TV estiver em pé.
+    void setScreenOrientation('LANDSCAPE');
 
-  useEffect(() => {
     return () => {
       void setScreenOrientation('LANDSCAPE');
     };
