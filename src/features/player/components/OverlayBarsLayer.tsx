@@ -67,8 +67,12 @@ function OverlayBarItem({
 }: OverlayBarItemProps) {
   const contentItems = useOverlayBarDynamicContent(bar);
   const imageSize = `${bar.imageSizePercent}%` as DimensionValue;
-  const layoutStyle: ViewStyle = {
+  const barStyle: ViewStyle = {
     backgroundColor: toRgba(bar.backgroundColor, bar.opacity),
+  };
+  const contentStyle: ViewStyle = {
+    width: '100%',
+    height: '100%',
     flexDirection: isHorizontal ? 'row' : 'column',
     justifyContent: toJustifyContent(bar.contentPosition),
     padding: bar.contentPadding,
@@ -79,49 +83,63 @@ function OverlayBarItem({
     : { width: imageSize, aspectRatio: 1 };
 
   return (
-    <View style={[styles.bar, positionStyle, layoutStyle]}>
-      {bar.media?.localPath ? (
-        <Image
-          source={{ uri: bar.media.localPath }}
-          style={[styles.image, imageStyle]}
-          resizeMode={toResizeMode(bar.fit)}
-          fadeDuration={0}
-        />
-      ) : null}
+    <View style={[styles.bar, positionStyle, barStyle]}>
+      <View style={[styles.content, contentStyle]}>
+        {bar.media?.localPath ? (
+          <Image
+            source={{ uri: bar.media.localPath }}
+            style={[styles.image, imageStyle]}
+            resizeMode={toResizeMode(bar.fit)}
+            fadeDuration={0}
+          />
+        ) : null}
 
-      {contentItems.map(item => {
-        if (item.type === 'SPACER') {
-          const spacerStyle: ViewStyle = isHorizontal
-            ? { width: item.spacerSize, height: 1, flexShrink: 0 }
-            : { height: item.spacerSize, width: 1, flexShrink: 0 };
+        {contentItems.map(item => {
+          if (item.type === 'SPACER') {
+            const spacerStyle: ViewStyle = isHorizontal
+              ? { width: item.spacerSize, height: 1, flexShrink: 0 }
+              : { height: item.spacerSize, width: 1, flexShrink: 0 };
 
-          return <View key={item.id} style={spacerStyle} />;
-        }
+            return <View key={item.id} style={spacerStyle} />;
+          }
 
-        const textStyle: TextStyle = {
-          color: item.textColor,
-          fontSize: item.fontSize,
-          fontWeight: toFontWeight(item.fontWeight),
-          backgroundColor: item.backgroundColor ?? 'transparent',
-          padding: item.padding,
-          borderRadius: item.borderRadius,
-          textAlign: 'center',
-        };
+          const textStyle: TextStyle = {
+            color: item.textColor,
+            fontSize: item.fontSize,
+            fontWeight: toFontWeight(item.fontWeight),
+            fontFamily: toFontFamily(item.fontFamily),
+            fontStyle: item.italic ? 'italic' : 'normal',
+            backgroundColor: item.backgroundColor ?? 'transparent',
+            padding: item.padding,
+            borderRadius: item.borderRadius,
+            textAlign: 'center',
+          };
 
-        return (
-          <Text
-            key={item.id}
-            numberOfLines={isHorizontal ? 2 : 6}
-            adjustsFontSizeToFit
-            minimumFontScale={0.45}
-            style={[styles.text, textStyle]}
-          >
-            {item.content}
-          </Text>
-        );
-      })}
+          return (
+            <Text
+              key={item.id}
+              numberOfLines={isHorizontal ? 2 : 6}
+              adjustsFontSizeToFit
+              minimumFontScale={0.45}
+              style={[styles.text, textStyle]}
+            >
+              {item.content}
+            </Text>
+          );
+        })}
+      </View>
     </View>
   );
+}
+
+function toFontFamily(
+  family: ProgrammingOverlayBar['contentItems'][number]['fontFamily'],
+): TextStyle['fontFamily'] {
+  if (family === 'SANS_SERIF') return 'sans-serif';
+  if (family === 'SANS_SERIF_CONDENSED') return 'sans-serif-condensed';
+  if (family === 'SERIF') return 'serif';
+  if (family === 'MONOSPACE') return 'monospace';
+  return undefined;
 }
 
 function toFontWeight(
@@ -172,6 +190,9 @@ const styles = StyleSheet.create({
   },
   bar: {
     position: 'absolute',
+    overflow: 'hidden',
+  },
+  content: {
     overflow: 'hidden',
     alignItems: 'center',
   },

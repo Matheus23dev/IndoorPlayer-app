@@ -75,6 +75,8 @@ describe('orientação da playlist', () => {
               textColor: '#ffcc00',
               fontSize: 42,
               fontWeight: 'SEMIBOLD',
+              fontFamily: 'MONOSPACE',
+              italic: true,
               backgroundColor: '#001122',
               padding: 12,
               borderRadius: 10,
@@ -121,6 +123,8 @@ describe('orientação da playlist', () => {
           textColor: '#FFCC00',
           fontSize: 42,
           fontWeight: 'SEMIBOLD',
+          fontFamily: 'MONOSPACE',
+          italic: true,
           backgroundColor: '#001122',
         }),
         expect.objectContaining({

@@ -107,6 +107,8 @@ function normalizeContentItems(
         textColor: normalizeHexColor(item.textColor, '#FFFFFF'),
         fontSize: clampNumber(item.fontSize, 10, 120, 28),
         fontWeight: normalizeFontWeight(item.fontWeight),
+        fontFamily: normalizeFontFamily(item.fontFamily),
+        italic: item.italic === true,
         backgroundColor:
           typeof item.backgroundColor === 'string' && item.backgroundColor
             ? normalizeHexColor(item.backgroundColor, '#000000')
@@ -142,6 +144,21 @@ function normalizeFontWeight(
   }
 
   return 'BOLD';
+}
+
+function normalizeFontFamily(
+  value: unknown,
+): ProgrammingOverlayBarContentItem['fontFamily'] {
+  if (
+    value === 'SANS_SERIF' ||
+    value === 'SANS_SERIF_CONDENSED' ||
+    value === 'SERIF' ||
+    value === 'MONOSPACE'
+  ) {
+    return value;
+  }
+
+  return 'SYSTEM';
 }
 
 function normalizeHexColor(value: unknown, fallback: string) {

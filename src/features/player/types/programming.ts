@@ -12,6 +12,12 @@ export type OverlayBarContentType =
   | 'WEATHER'
   | 'SPACER';
 export type OverlayBarFontWeight = 'NORMAL' | 'SEMIBOLD' | 'BOLD';
+export type OverlayBarFontFamily =
+  | 'SYSTEM'
+  | 'SANS_SERIF'
+  | 'SANS_SERIF_CONDENSED'
+  | 'SERIF'
+  | 'MONOSPACE';
 
 export interface ProgrammingOverlayBarContentItem {
   id: string;
@@ -20,6 +26,8 @@ export interface ProgrammingOverlayBarContentItem {
   textColor: string;
   fontSize: number;
   fontWeight: OverlayBarFontWeight;
+  fontFamily: OverlayBarFontFamily;
+  italic: boolean;
   backgroundColor: string | null;
   padding: number;
   borderRadius: number;

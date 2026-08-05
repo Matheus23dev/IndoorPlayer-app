@@ -131,6 +131,8 @@ function createLegacyItems(
     textColor: bar.textColor,
     fontSize: bar.fontSize,
     fontWeight: 'BOLD' as const,
+    fontFamily: 'SYSTEM' as const,
+    italic: false,
     backgroundColor: null,
     padding: 0,
     borderRadius: 0,
