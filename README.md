@@ -28,6 +28,8 @@ O APK release é gerado em `android/app/build/outputs/apk/release/app-release.ap
 
 O Gradle carrega `.env` por meio do `react-native-config`; sempre gere um novo APK depois de trocar o IP. O build imprime `Reading env from: .env` quando a configuração foi incorporada.
 
+O `postinstall` aplica o patch de `react-native-video` mantido em `patches/`. Esse patch faz o ExoPlayer usar uma `TextureView` real, necessária para girar vídeos de playlists verticais na TV Box. Não remova o `patch-package` sem substituir essa correção nativa.
+
 ## Estrutura
 
 ```text
