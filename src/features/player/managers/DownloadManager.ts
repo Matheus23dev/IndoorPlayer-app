@@ -102,6 +102,12 @@ class DownloadManager {
     return true;
   }
 
+  async validateMedia(localPath: string) {
+    const filePath = this.removeFileProtocol(localPath);
+
+    return this.isValidFile(filePath);
+  }
+
   async listFiles() {
     await this.ensureCacheDirectory();
 

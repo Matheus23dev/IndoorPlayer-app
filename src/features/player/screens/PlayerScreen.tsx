@@ -20,6 +20,7 @@ import {
 } from '../../../core/native/screenOrientation';
 import { usePlayer } from '../hooks/usePlayer';
 import { useVideoPlayback } from '../hooks/useVideoPlayback';
+import { OverlayBarsLayer } from '../components/OverlayBarsLayer';
 
 const MISSING_FILE_SKIP_DELAY_MS = 1_000;
 
@@ -38,6 +39,7 @@ export function PlayerScreen() {
     isVideo,
     hasPendingPlaylist,
     orientation,
+    bars,
     finishCurrentVideo,
     failCurrentVideo,
     reportVideoLoaded,
@@ -61,18 +63,18 @@ export function PlayerScreen() {
     windowDimensions.height,
   );
 
-  const mediaStyle = viewport.rotated
-    ? [
-        styles.media,
-        {
-          width: viewport.width,
-          height: viewport.height,
-          left: (windowDimensions.width - viewport.width) / 2,
-          top: (windowDimensions.height - viewport.height) / 2,
-          transform: [{ rotate: viewport.rotation }],
-        },
-      ]
-    : styles.media;
+  const rotatedCanvasStyle = viewport.rotated
+    ? {
+        width: viewport.width,
+        height: viewport.height,
+        left: (windowDimensions.width - viewport.width) / 2,
+        top: (windowDimensions.height - viewport.height) / 2,
+        transform: [{ rotate: viewport.rotation }],
+      }
+    : undefined;
+
+  const mediaStyle = [styles.media, rotatedCanvasStyle];
+  const overlayStyle = [styles.overlayCanvas, rotatedCanvasStyle];
 
   useEffect(() => {
     // A TV Box deve continuar em landscape. Playlists verticais são giradas
@@ -178,6 +180,8 @@ export function PlayerScreen() {
           />
         )}
 
+        <OverlayBarsLayer bars={bars} style={overlayStyle} />
+
         {hasPendingPlaylist && (
           <View style={styles.pendingIndicator} pointerEvents="none" />
         )}
@@ -207,6 +211,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#000000',
+  },
+  overlayCanvas: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
   },
   center: {
     flex: 1,

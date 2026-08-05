@@ -218,6 +218,10 @@ class ProgrammingManager {
       ...playlist,
 
       items: [...playlist.items],
+      bars: playlist.bars.map(bar => ({
+        ...bar,
+        media: bar.media ? { ...bar.media } : null,
+      })),
     };
   }
 
@@ -253,6 +257,10 @@ class ProgrammingManager {
         ...playlist,
 
         items: [...playlist.items],
+        bars: playlist.bars.map(bar => ({
+          ...bar,
+          media: bar.media ? { ...bar.media } : null,
+        })),
       })),
     };
   }
@@ -394,6 +402,30 @@ class ProgrammingManager {
         orientation: playlist.orientation,
 
         updatedAt: playlist.updatedAt,
+
+        bars: playlist.bars.map(bar => ({
+          id: bar.id,
+          position: bar.position,
+          sizePercent: bar.sizePercent,
+          backgroundColor: bar.backgroundColor,
+          opacity: bar.opacity,
+          fit: bar.fit,
+          contentPosition: bar.contentPosition,
+          imageSizePercent: bar.imageSizePercent,
+          contentPadding: bar.contentPadding,
+          contentGap: bar.contentGap,
+          contentItems: bar.contentItems,
+          textContent: bar.textContent,
+          textColor: bar.textColor,
+          fontSize: bar.fontSize,
+          widgetType: bar.widgetType,
+          weatherLocation: bar.weatherLocation,
+          order: bar.order,
+          updatedAt: bar.updatedAt,
+          mediaId: bar.media?.id ?? null,
+          mediaUpdatedAt: bar.media?.updatedAt ?? null,
+          localPath: bar.media?.localPath ?? null,
+        })),
 
         items: playlist.items.map(getPlayerItemSignatureData),
       })),

@@ -1,5 +1,8 @@
 import type { PlayerItem } from '../types/media';
-import type { PlaylistOrientation } from '../types/programming';
+import type {
+  PlaylistOrientation,
+  ProgrammingOverlayBar,
+} from '../types/programming';
 
 import {
   createPlayerItemsSignature,
@@ -12,6 +15,7 @@ export interface PlaylistSnapshot {
   scheduleId: string | null;
   hash: string | null;
   orientation: PlaylistOrientation;
+  bars: ProgrammingOverlayBar[];
 }
 
 interface SetPlaylistOptions {
@@ -19,6 +23,7 @@ interface SetPlaylistOptions {
   scheduleId: string;
   hash: string;
   orientation: PlaylistOrientation;
+  bars: ProgrammingOverlayBar[];
 }
 
 type PlaylistListener = (snapshot: PlaylistSnapshot) => void;
@@ -30,7 +35,9 @@ class PlaylistManager {
   private scheduleId: string | null = null;
   private hash: string | null = null;
   private orientation: PlaylistOrientation = 'LANDSCAPE';
+  private bars: ProgrammingOverlayBar[] = [];
   private itemsSignature = '';
+  private barsSignature = '';
 
   private listeners = new Set<PlaylistListener>();
 
@@ -38,13 +45,42 @@ class PlaylistManager {
     const normalizedItems = sortPlayerItems(items);
 
     const nextItemsSignature = createPlayerItemsSignature(normalizedItems);
+    const normalizedBars = [...options.bars].sort(
+      (first, second) => first.order - second.order,
+    );
+    const nextBarsSignature = JSON.stringify(
+      normalizedBars.map(bar => ({
+        id: bar.id,
+        position: bar.position,
+        sizePercent: bar.sizePercent,
+        backgroundColor: bar.backgroundColor,
+        opacity: bar.opacity,
+        fit: bar.fit,
+        contentPosition: bar.contentPosition,
+        imageSizePercent: bar.imageSizePercent,
+        contentPadding: bar.contentPadding,
+        contentGap: bar.contentGap,
+        contentItems: bar.contentItems,
+        textContent: bar.textContent,
+        textColor: bar.textColor,
+        fontSize: bar.fontSize,
+        widgetType: bar.widgetType,
+        weatherLocation: bar.weatherLocation,
+        order: bar.order,
+        updatedAt: bar.updatedAt,
+        mediaId: bar.media?.id ?? null,
+        mediaUpdatedAt: bar.media?.updatedAt ?? null,
+        localPath: bar.media?.localPath ?? null,
+      })),
+    );
 
     const isSamePlaylist =
       this.playlistId === options.playlistId &&
       this.scheduleId === options.scheduleId &&
       this.hash === options.hash &&
       this.orientation === options.orientation &&
-      this.itemsSignature === nextItemsSignature;
+      this.itemsSignature === nextItemsSignature &&
+      this.barsSignature === nextBarsSignature;
 
     if (isSamePlaylist) {
       console.log('[PLAYLIST] Nenhuma alteração encontrada.');
@@ -57,13 +93,16 @@ class PlaylistManager {
     this.scheduleId = options.scheduleId;
     this.hash = options.hash;
     this.orientation = options.orientation;
+    this.bars = normalizedBars;
     this.itemsSignature = nextItemsSignature;
+    this.barsSignature = nextBarsSignature;
 
     console.log('[PLAYLIST] Playlist atualizada:', {
       playlistId: this.playlistId,
       scheduleId: this.scheduleId,
       totalItems: this.items.length,
       orientation: this.orientation,
+      bars: this.bars.length,
     });
 
     this.emit();
@@ -105,6 +144,13 @@ class PlaylistManager {
     return this.orientation;
   }
 
+  getBars() {
+    return this.bars.map(bar => ({
+      ...bar,
+      media: bar.media ? { ...bar.media } : null,
+    }));
+  }
+
   hasPlaylist() {
     return this.items.length > 0;
   }
@@ -116,6 +162,7 @@ class PlaylistManager {
       scheduleId: this.scheduleId,
       hash: this.hash,
       orientation: this.orientation,
+      bars: this.getBars(),
     };
   }
 
@@ -152,7 +199,8 @@ class PlaylistManager {
       this.playlistId === null &&
       this.scheduleId === null &&
       this.hash === null &&
-      this.itemsSignature === ''
+      this.itemsSignature === '' &&
+      this.barsSignature === ''
     );
   }
 
@@ -162,7 +210,9 @@ class PlaylistManager {
     this.scheduleId = null;
     this.hash = null;
     this.orientation = 'LANDSCAPE';
+    this.bars = [];
     this.itemsSignature = '';
+    this.barsSignature = '';
   }
 }
 

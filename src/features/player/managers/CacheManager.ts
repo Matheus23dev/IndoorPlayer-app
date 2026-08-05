@@ -1,13 +1,13 @@
 import { downloadManager } from './DownloadManager';
 
-import type { PlayerItem } from '../types/media';
+import type { PlayerItem, PlayerMedia } from '../types/media';
 
 import { playerEventLogger } from '../logging/PlayerEventLogger';
 
 class CacheManager {
   private cleaning = false;
 
-  async clean(items: PlayerItem[]) {
+  async clean(items: PlayerItem[], extraMedias: PlayerMedia[] = []) {
     if (this.cleaning) {
       console.log(
         '[CACHE] Limpeza ignorada: já existe uma limpeza em andamento.',
@@ -21,7 +21,7 @@ class CacheManager {
     try {
       const files = await downloadManager.listFiles();
 
-      const validFileNames = this.createValidFileNames(items);
+      const validFileNames = this.createValidFileNames(items, extraMedias);
 
       console.log('[CACHE] Iniciando limpeza:', {
         totalFiles: files.length,
@@ -105,6 +105,28 @@ class CacheManager {
     }
   }
 
+  async validateMedias(medias: PlayerMedia[]) {
+    try {
+      for (const media of medias) {
+        if (!media.localPath) {
+          return false;
+        }
+
+        const valid = await downloadManager.validateMedia(media.localPath);
+
+        if (!valid) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.log('[CACHE] Erro ao validar mÃ­dias adicionais:', error);
+
+      return false;
+    }
+  }
+
   async getInfo() {
     const files = await downloadManager.listFiles();
 
@@ -125,11 +147,28 @@ class CacheManager {
     };
   }
 
-  private createValidFileNames(items: PlayerItem[]) {
+  private createValidFileNames(
+    items: PlayerItem[],
+    extraMedias: PlayerMedia[],
+  ) {
     const validFileNames = new Set<string>();
 
     for (const item of items) {
       const localPath = item.media.localPath;
+
+      if (!localPath) {
+        continue;
+      }
+
+      const fileName = this.getFileNameFromPath(localPath);
+
+      if (fileName) {
+        validFileNames.add(fileName);
+      }
+    }
+
+    for (const media of extraMedias) {
+      const localPath = media.localPath;
 
       if (!localPath) {
         continue;

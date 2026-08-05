@@ -44,7 +44,10 @@ import {
   getPlayerItemSignatureData,
   normalizePlayerItem,
 } from '../domain/playerItem';
-import { normalizePlaylistOrientation } from '../domain/programming';
+import {
+  normalizeOverlayBar,
+  normalizePlaylistOrientation,
+} from '../domain/programming';
 
 import type {
   ProgrammingOccurrence,
@@ -66,6 +69,7 @@ interface SavedPlayerState {
   priority: number;
   clockOffsetMs: number;
   orientation: PlaylistOrientation;
+  bars: PlaylistSnapshot['bars'];
 }
 
 class PlayerEngine {
@@ -484,6 +488,7 @@ class PlayerEngine {
         scheduleId: occurrence.scheduleId,
         hash,
         orientation: playlist.orientation,
+        bars: playlist.bars,
       });
     }
   }
@@ -598,6 +603,7 @@ class PlayerEngine {
       priority: activeOccurrence.priority,
       clockOffsetMs: programmingSnapshot.clockOffsetMs,
       orientation: snapshot.orientation,
+      bars: snapshot.bars,
     };
 
     void playerState.save(state).catch(error => {
@@ -622,13 +628,19 @@ class PlayerEngine {
     const programmingItems = programmingManager
       .getSnapshot()
       .playlists.flatMap(playlist => playlist.items);
+    const barMedias = [
+      ...playlistManager.getBars(),
+      ...programmingManager
+        .getSnapshot()
+        .playlists.flatMap(playlist => playlist.bars),
+    ].flatMap(bar => (bar.media ? [bar.media] : []));
 
     const itemsToKeep = this.mergeUniqueItems([
       ...activeItems,
       ...programmingItems,
     ]);
 
-    const keepSignature = this.createItemsSignature(itemsToKeep);
+    const keepSignature = this.createItemsSignature(itemsToKeep, barMedias);
 
     if (keepSignature === this.lastCleanedSignature) {
       return;
@@ -636,7 +648,7 @@ class PlayerEngine {
 
     this.lastCleanedSignature = keepSignature;
 
-    void cacheManager.clean(itemsToKeep).catch(error => {
+    void cacheManager.clean(itemsToKeep, barMedias).catch(error => {
       this.lastCleanedSignature = '';
 
       console.log('[ENGINE] Erro ao limpar cache:', error);
@@ -736,9 +748,14 @@ class PlayerEngine {
         return;
       }
 
-      const cacheIsValid = await cacheManager.validate(normalizedState.items);
+      const [itemsCacheIsValid, barsCacheIsValid] = await Promise.all([
+        cacheManager.validate(normalizedState.items),
+        cacheManager.validateMedias(
+          normalizedState.bars.flatMap(bar => (bar.media ? [bar.media] : [])),
+        ),
+      ]);
 
-      if (!cacheIsValid) {
+      if (!itemsCacheIsValid || !barsCacheIsValid) {
         console.log('[ENGINE] Playlist salva ignorada: cache local inválido.');
 
         await playerState.clear();
@@ -774,6 +791,7 @@ class PlayerEngine {
         scheduleId: normalizedState.scheduleId,
         hash: normalizedState.hash,
         orientation: normalizedState.orientation,
+        bars: normalizedState.bars,
       });
 
       this.scheduleRestoredEnd();
@@ -797,6 +815,9 @@ class PlayerEngine {
         : 0,
 
       orientation: normalizePlaylistOrientation(savedState.orientation),
+      bars: Array.isArray(savedState.bars)
+        ? savedState.bars.map(normalizeOverlayBar)
+        : [],
     };
   }
 
@@ -890,6 +911,29 @@ class PlayerEngine {
       orientation: playlist.orientation,
       playlistUpdatedAt: playlist.updatedAt,
 
+      bars: playlist.bars.map(bar => ({
+        id: bar.id,
+        position: bar.position,
+        sizePercent: bar.sizePercent,
+        backgroundColor: bar.backgroundColor,
+        opacity: bar.opacity,
+        fit: bar.fit,
+        contentPosition: bar.contentPosition,
+        imageSizePercent: bar.imageSizePercent,
+        contentPadding: bar.contentPadding,
+        contentGap: bar.contentGap,
+        contentItems: bar.contentItems,
+        textContent: bar.textContent,
+        textColor: bar.textColor,
+        fontSize: bar.fontSize,
+        widgetType: bar.widgetType,
+        weatherLocation: bar.weatherLocation,
+        order: bar.order,
+        updatedAt: bar.updatedAt,
+        mediaId: bar.media?.id ?? null,
+        mediaUpdatedAt: bar.media?.updatedAt ?? null,
+      })),
+
       items: [...playlist.items]
         .sort((first, second) => first.order - second.order)
         .map(getPlayerItemSignatureData),
@@ -906,9 +950,12 @@ class PlayerEngine {
     return Array.from(uniqueItems.values());
   }
 
-  private createItemsSignature(items: PlaylistSnapshot['items']) {
-    return JSON.stringify(
-      [...items]
+  private createItemsSignature(
+    items: PlaylistSnapshot['items'],
+    extraMedias: Array<PlaylistSnapshot['items'][number]['media']>,
+  ) {
+    return JSON.stringify({
+      items: [...items]
         .sort((first, second) => first.media.id.localeCompare(second.media.id))
         .map(item => ({
           itemId: item.id,
@@ -916,7 +963,14 @@ class PlayerEngine {
           localPath: item.media.localPath ?? null,
           updatedAt: item.media.updatedAt ?? null,
         })),
-    );
+      extraMedias: [...extraMedias]
+        .sort((first, second) => first.id.localeCompare(second.id))
+        .map(media => ({
+          mediaId: media.id,
+          localPath: media.localPath ?? null,
+          updatedAt: media.updatedAt ?? null,
+        })),
+    });
   }
 
   private unsubscribeAll() {

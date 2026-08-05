@@ -20,6 +20,7 @@ export function usePlayer() {
   const [orientation, setOrientation] = useState(
     playlistManager.getOrientation(),
   );
+  const [bars, setBars] = useState(playlistManager.getBars());
 
   const [initializing, setInitializing] = useState(true);
 
@@ -63,6 +64,7 @@ export function usePlayer() {
     const unsubscribePlaylist = playlistManager.subscribe(nextSnapshot => {
       if (mountedRef.current) {
         setOrientation(nextSnapshot.orientation);
+        setBars(nextSnapshot.bars);
       }
     });
 
@@ -196,6 +198,7 @@ export function usePlayer() {
 
     hasPendingPlaylist: snapshot.hasPendingPlaylist,
     orientation,
+    bars,
 
     initializing,
     isEmpty,

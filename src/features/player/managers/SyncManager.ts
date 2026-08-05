@@ -287,26 +287,53 @@ class SyncManager {
 
     for (const remotePlaylist of remotePlaylists) {
       const localPlaylist = localPlaylistsById.get(remotePlaylist.id);
+      let preparedPlaylist: ProgrammingPlaylist;
 
       if (
         localPlaylist &&
         (await this.canReuseLocalPlaylist(remotePlaylist, localPlaylist))
       ) {
-        preparedPlaylists.push(
-          this.mergeRemotePlaylistWithLocalFiles(remotePlaylist, localPlaylist),
+        preparedPlaylist = this.mergeRemotePlaylistWithLocalFiles(
+          remotePlaylist,
+          localPlaylist,
         );
 
         console.log('[SYNC] Playlist reutilizada do cache:', remotePlaylist.id);
-
-        continue;
+      } else {
+        preparedPlaylist = await this.downloadPlaylist(remotePlaylist);
       }
 
-      const preparedPlaylist = await this.downloadPlaylist(remotePlaylist);
+      const bars = await this.prepareOverlayBars(remotePlaylist);
 
-      preparedPlaylists.push(preparedPlaylist);
+      preparedPlaylists.push({
+        ...preparedPlaylist,
+        bars,
+      });
     }
 
     return preparedPlaylists;
+  }
+
+  private async prepareOverlayBars(playlist: ProgrammingPlaylist) {
+    return Promise.all(
+      playlist.bars.map(async bar => {
+        if (!bar.media) {
+          return bar;
+        }
+
+        const localPath = await downloadManager.downloadMedia(bar.media);
+
+        return {
+          ...bar,
+          media: {
+            ...bar.media,
+            localPath: localPath.startsWith('file://')
+              ? localPath
+              : `file://${localPath}`,
+          },
+        };
+      }),
+    );
   }
 
   private mergeRemotePlaylistWithLocalFiles(
@@ -429,6 +456,9 @@ class SyncManager {
     const programmingItems = programmingPlaylists.flatMap(
       playlist => playlist.items,
     );
+    const programmingBarMedias = programmingPlaylists.flatMap(playlist =>
+      playlist.bars.flatMap(bar => (bar.media ? [bar.media] : [])),
+    );
 
     const selectedItems = playlistManager.getCurrent();
 
@@ -448,7 +478,7 @@ class SyncManager {
 
     this.cancelEmptyCacheCleanup();
 
-    await cacheManager.clean(itemsToKeep);
+    await cacheManager.clean(itemsToKeep, programmingBarMedias);
   }
 
   private scheduleEmptyCacheCleanup() {
