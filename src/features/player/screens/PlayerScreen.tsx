@@ -23,7 +23,7 @@ import { useVideoPlayback } from '../hooks/useVideoPlayback';
 import { OverlayBarsLayer } from '../components/OverlayBarsLayer';
 import {
   getMediaFrameStyle,
-  getOverlayBarInsets,
+  getMediaFrameInsets,
   getOverlayLayoutScale,
 } from '../domain/overlayBarLayout';
 
@@ -78,13 +78,10 @@ export function PlayerScreen() {
       }
     : undefined;
 
-  const overlayInsets = getOverlayBarInsets(bars);
+  const mediaInsets = getMediaFrameInsets(bars);
   const layoutScale = getOverlayLayoutScale(viewport.width, viewport.height);
   const playbackCanvasStyle = [styles.playbackCanvas, rotatedCanvasStyle];
-  const mediaFrameStyle = [
-    styles.mediaFrame,
-    getMediaFrameStyle(overlayInsets),
-  ];
+  const mediaFrameStyle = [styles.mediaFrame, getMediaFrameStyle(mediaInsets)];
 
   useEffect(() => {
     // A TV Box deve continuar em landscape. Playlists verticais são giradas

@@ -1,10 +1,12 @@
 import { getOverlayContentInsetStyle } from '../src/features/player/components/OverlayBarsLayer';
 import {
   getMediaFrameStyle,
+  getMediaFrameInsets,
   getOverlayBarInsets,
   getOverlayBarPositionStyle,
   getOverlayBarSafeContentStyle,
   getOverlayLayoutScale,
+  getOverlayTextOpticalOffsetY,
   getOverlayTextBlockPadding,
 } from '../src/features/player/domain/overlayBarLayout';
 
@@ -43,6 +45,35 @@ describe('layout das barras do player', () => {
     });
   });
 
+  test('mantém o vídeo em tela cheia quando existe somente uma barra', () => {
+    expect(
+      getMediaFrameInsets([{ position: 'BOTTOM', sizePercent: 12 }]),
+    ).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+
+  test('reserva o centro somente para duas barras perpendiculares e iguais', () => {
+    expect(
+      getMediaFrameInsets([
+        { position: 'BOTTOM', sizePercent: 12 },
+        { position: 'LEFT', sizePercent: 12 },
+      ]),
+    ).toEqual({ top: 0, right: 0, bottom: 12, left: 12 });
+
+    expect(
+      getMediaFrameInsets([
+        { position: 'BOTTOM', sizePercent: 10 },
+        { position: 'LEFT', sizePercent: 12 },
+      ]),
+    ).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+
+    expect(
+      getMediaFrameInsets([
+        { position: 'TOP', sizePercent: 12 },
+        { position: 'BOTTOM', sizePercent: 12 },
+      ]),
+    ).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+  });
+
   test('mantém medidas proporcionais em resoluções diferentes', () => {
     expect(getOverlayLayoutScale(960, 540)).toBe(1);
     expect(getOverlayLayoutScale(1920, 1080)).toBe(2);
@@ -60,6 +91,15 @@ describe('layout das barras do player', () => {
     expect(getOverlayBarSafeContentStyle('RIGHT', 1)).toEqual({
       paddingRight: 16,
     });
+    expect(getOverlayBarSafeContentStyle('LEFT', 1, 'CENTER')).toEqual({});
+    expect(getOverlayBarSafeContentStyle('LEFT', 1, 'END')).toEqual({});
+    expect(getOverlayBarSafeContentStyle('LEFT', 1, 'START')).toEqual({
+      paddingLeft: 16,
+    });
+    expect(getOverlayBarSafeContentStyle('RIGHT', 1, 'START')).toEqual({});
+    expect(getOverlayBarSafeContentStyle('RIGHT', 1, 'END')).toEqual({
+      paddingRight: 16,
+    });
   });
 
   test('limita o padding do bloco no eixo estreito sem alterar o outro eixo', () => {
@@ -71,5 +111,11 @@ describe('layout das barras do player', () => {
       paddingHorizontal: 12,
       paddingVertical: 18,
     });
+  });
+
+  test('compensa a mÃ©trica visual do texto apenas nas barras horizontais', () => {
+    expect(getOverlayTextOpticalOffsetY('BOTTOM', 40, 1)).toBe(-3.2);
+    expect(getOverlayTextOpticalOffsetY('TOP', 120, 1)).toBe(-4);
+    expect(getOverlayTextOpticalOffsetY('LEFT', 40, 1)).toBe(0);
   });
 });

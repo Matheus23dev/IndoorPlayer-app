@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type {
   DimensionValue,
@@ -14,6 +15,7 @@ import {
   getOverlayBarInsets,
   getOverlayBarPositionStyle,
   getOverlayBarSafeContentStyle,
+  getOverlayTextOpticalOffsetY,
   getOverlayTextBlockPadding,
 } from '../domain/overlayBarLayout';
 
@@ -86,21 +88,22 @@ function OverlayBarItem({
       isHorizontal,
       scaleValue(bar.contentPadding, layoutScale),
     ),
-    ...getOverlayBarSafeContentStyle(bar.position, layoutScale),
+    ...getOverlayBarSafeContentStyle(
+      bar.position,
+      layoutScale,
+      bar.contentAlignment,
+    ),
   };
-  const imageStyle: ImageStyle = isHorizontal
-    ? { height: imageSize, aspectRatio: 1, maxWidth: '100%' }
-    : { width: imageSize, aspectRatio: 1, maxHeight: '100%' };
 
   return (
     <View style={[styles.bar, positionStyle, barStyle]}>
       <View style={[styles.content, contentStyle]}>
         {bar.media?.localPath ? (
-          <Image
-            source={{ uri: bar.media.localPath }}
-            style={[styles.image, imageStyle]}
-            resizeMode={toResizeMode(bar.fit)}
-            fadeDuration={0}
+          <OverlayContentImage
+            uri={bar.media.localPath}
+            fit={bar.fit}
+            size={imageSize}
+            isHorizontal={isHorizontal}
           />
         ) : null}
 
@@ -121,36 +124,23 @@ function OverlayBarItem({
 
             const contentImageSize =
               `${item.imageSizePercent}%` as DimensionValue;
-            const contentImageStyle: ImageStyle = {
-              flexShrink: 0,
-              transform: [
-                {
-                  translateX: scaleSignedValue(item.offsetX, layoutScale),
-                },
-                {
-                  translateY: scaleSignedValue(item.offsetY, layoutScale),
-                },
-              ],
-              ...(isHorizontal
-                ? {
-                    height: contentImageSize,
-                    aspectRatio: 1,
-                    maxWidth: '100%',
-                  }
-                : {
-                    width: contentImageSize,
-                    aspectRatio: 1,
-                    maxHeight: '100%',
-                  }),
-            };
+            const transform: ImageStyle['transform'] = [
+              {
+                translateX: scaleSignedValue(item.offsetX, layoutScale),
+              },
+              {
+                translateY: scaleSignedValue(item.offsetY, layoutScale),
+              },
+            ];
 
             return (
-              <Image
+              <OverlayContentImage
                 key={item.id}
-                source={{ uri: item.media.localPath }}
-                style={contentImageStyle}
-                resizeMode={toResizeMode(item.fit)}
-                fadeDuration={0}
+                uri={item.media.localPath}
+                fit={item.fit}
+                size={contentImageSize}
+                isHorizontal={isHorizontal}
+                transform={transform}
               />
             );
           }
@@ -181,7 +171,13 @@ function OverlayBarItem({
                 translateX: scaleSignedValue(item.offsetX, layoutScale),
               },
               {
-                translateY: scaleSignedValue(item.offsetY, layoutScale),
+                translateY:
+                  scaleSignedValue(item.offsetY, layoutScale) +
+                  getOverlayTextOpticalOffsetY(
+                    bar.position,
+                    fontSize,
+                    layoutScale,
+                  ),
               },
             ],
           };
@@ -202,6 +198,51 @@ function OverlayBarItem({
         })}
       </View>
     </View>
+  );
+}
+
+interface OverlayContentImageProps {
+  uri: string;
+  fit: ProgrammingOverlayBar['fit'];
+  size: DimensionValue;
+  isHorizontal: boolean;
+  transform?: ImageStyle['transform'];
+}
+
+function OverlayContentImage({
+  uri,
+  fit,
+  size,
+  isHorizontal,
+  transform,
+}: OverlayContentImageProps) {
+  const [loadedImage, setLoadedImage] = useState({ uri, aspectRatio: 1 });
+  const naturalAspectRatio =
+    loadedImage.uri === uri ? loadedImage.aspectRatio : 1;
+
+  const imageStyle: ImageStyle = {
+    flexShrink: 0,
+    aspectRatio: fit === 'CONTAIN' ? naturalAspectRatio : 1,
+    transform,
+    ...(isHorizontal
+      ? { height: size, maxWidth: '100%' }
+      : { width: size, maxHeight: '100%' }),
+  };
+
+  return (
+    <Image
+      source={{ uri }}
+      style={imageStyle}
+      resizeMode={toResizeMode(fit)}
+      fadeDuration={0}
+      onLoad={event => {
+        const { width, height } = event.nativeEvent.source;
+
+        if (width > 0 && height > 0) {
+          setLoadedImage({ uri, aspectRatio: width / height });
+        }
+      }}
+    />
   );
 }
 
