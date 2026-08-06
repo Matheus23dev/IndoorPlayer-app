@@ -71,16 +71,14 @@ function OverlayBarItem({
     backgroundColor: toRgba(bar.backgroundColor, bar.opacity),
   };
   const contentStyle: ViewStyle = {
-    width: '100%',
-    height: '100%',
     flexDirection: isHorizontal ? 'row' : 'column',
     justifyContent: toJustifyContent(bar.contentPosition),
-    padding: bar.contentPadding,
     gap: bar.contentGap,
+    ...getOverlayContentInsetStyle(isHorizontal, bar.contentPadding),
   };
   const imageStyle: ImageStyle = isHorizontal
-    ? { height: imageSize, aspectRatio: 1 }
-    : { width: imageSize, aspectRatio: 1 };
+    ? { height: imageSize, aspectRatio: 1, maxWidth: '100%' }
+    : { width: imageSize, aspectRatio: 1, maxHeight: '100%' };
 
   return (
     <View style={[styles.bar, positionStyle, barStyle]}>
@@ -106,6 +104,7 @@ function OverlayBarItem({
           const textStyle: TextStyle = {
             color: item.textColor,
             fontSize: item.fontSize,
+            lineHeight: Math.round(item.fontSize * 1.2),
             fontWeight: toFontWeight(item.fontWeight),
             fontFamily: toFontFamily(item.fontFamily),
             fontStyle: item.italic ? 'italic' : 'normal',
@@ -113,6 +112,8 @@ function OverlayBarItem({
             padding: item.padding,
             borderRadius: item.borderRadius,
             textAlign: 'center',
+            textAlignVertical: 'center',
+            includeFontPadding: false,
           };
 
           return (
@@ -130,6 +131,15 @@ function OverlayBarItem({
       </View>
     </View>
   );
+}
+
+export function getOverlayContentInsetStyle(
+  isHorizontal: boolean,
+  contentPadding: number,
+): ViewStyle {
+  return isHorizontal
+    ? { paddingHorizontal: contentPadding }
+    : { paddingVertical: contentPadding };
 }
 
 function toFontFamily(
@@ -193,6 +203,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   content: {
+    flex: 1,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 0,
+    boxSizing: 'border-box',
     overflow: 'hidden',
     alignItems: 'center',
   },
@@ -201,6 +216,8 @@ const styles = StyleSheet.create({
   },
   text: {
     flexShrink: 1,
+    maxWidth: '100%',
+    maxHeight: '100%',
     fontWeight: '700',
   },
 });
