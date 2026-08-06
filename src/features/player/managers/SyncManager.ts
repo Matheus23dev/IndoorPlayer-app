@@ -16,7 +16,7 @@ import { normalizeProgrammingResponse } from '../domain/programming';
 
 import { sortPlayerItems } from '../domain/playerItem';
 
-import type { PlayerItem } from '../types/media';
+import type { PlayerItem, PlayerMedia } from '../types/media';
 
 import type {
   ProgrammingPlaylist,
@@ -317,23 +317,36 @@ class SyncManager {
   private async prepareOverlayBars(playlist: ProgrammingPlaylist) {
     return Promise.all(
       playlist.bars.map(async bar => {
-        if (!bar.media) {
-          return bar;
-        }
-
-        const localPath = await downloadManager.downloadMedia(bar.media);
+        const media = bar.media
+          ? await this.prepareOverlayMedia(bar.media)
+          : null;
+        const contentItems = await Promise.all(
+          bar.contentItems.map(async item => ({
+            ...item,
+            media: item.media
+              ? await this.prepareOverlayMedia(item.media)
+              : null,
+          })),
+        );
 
         return {
           ...bar,
-          media: {
-            ...bar.media,
-            localPath: localPath.startsWith('file://')
-              ? localPath
-              : `file://${localPath}`,
-          },
+          media,
+          contentItems,
         };
       }),
     );
+  }
+
+  private async prepareOverlayMedia(media: PlayerMedia) {
+    const localPath = await downloadManager.downloadMedia(media);
+
+    return {
+      ...media,
+      localPath: localPath.startsWith('file://')
+        ? localPath
+        : `file://${localPath}`,
+    };
   }
 
   private mergeRemotePlaylistWithLocalFiles(
@@ -457,7 +470,10 @@ class SyncManager {
       playlist => playlist.items,
     );
     const programmingBarMedias = programmingPlaylists.flatMap(playlist =>
-      playlist.bars.flatMap(bar => (bar.media ? [bar.media] : [])),
+      playlist.bars.flatMap(bar => [
+        ...(bar.media ? [bar.media] : []),
+        ...bar.contentItems.flatMap(item => (item.media ? [item.media] : [])),
+      ]),
     );
 
     const selectedItems = playlistManager.getCurrent();

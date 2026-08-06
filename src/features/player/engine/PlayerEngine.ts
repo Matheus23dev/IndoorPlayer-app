@@ -633,7 +633,10 @@ class PlayerEngine {
       ...programmingManager
         .getSnapshot()
         .playlists.flatMap(playlist => playlist.bars),
-    ].flatMap(bar => (bar.media ? [bar.media] : []));
+    ].flatMap(bar => [
+      ...(bar.media ? [bar.media] : []),
+      ...bar.contentItems.flatMap(item => (item.media ? [item.media] : [])),
+    ]);
 
     const itemsToKeep = this.mergeUniqueItems([
       ...activeItems,
@@ -751,7 +754,12 @@ class PlayerEngine {
       const [itemsCacheIsValid, barsCacheIsValid] = await Promise.all([
         cacheManager.validate(normalizedState.items),
         cacheManager.validateMedias(
-          normalizedState.bars.flatMap(bar => (bar.media ? [bar.media] : [])),
+          normalizedState.bars.flatMap(bar => [
+            ...(bar.media ? [bar.media] : []),
+            ...bar.contentItems.flatMap(item =>
+              item.media ? [item.media] : [],
+            ),
+          ]),
         ),
       ]);
 

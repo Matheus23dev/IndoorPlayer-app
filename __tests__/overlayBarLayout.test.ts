@@ -3,7 +3,9 @@ import {
   getMediaFrameStyle,
   getOverlayBarInsets,
   getOverlayBarPositionStyle,
+  getOverlayBarSafeContentStyle,
   getOverlayLayoutScale,
+  getOverlayTextBlockPadding,
 } from '../src/features/player/domain/overlayBarLayout';
 
 describe('layout das barras do player', () => {
@@ -45,5 +47,29 @@ describe('layout das barras do player', () => {
     expect(getOverlayLayoutScale(960, 540)).toBe(1);
     expect(getOverlayLayoutScale(1920, 1080)).toBe(2);
     expect(getOverlayLayoutScale(0, 0)).toBe(1);
+  });
+
+  test('protege o conteúdo no lado externo sujeito ao overscan da TV', () => {
+    expect(getOverlayBarSafeContentStyle('TOP', 1)).toEqual({ paddingTop: 16 });
+    expect(getOverlayBarSafeContentStyle('BOTTOM', 1.5)).toEqual({
+      paddingBottom: 24,
+    });
+    expect(getOverlayBarSafeContentStyle('LEFT', 1)).toEqual({
+      paddingLeft: 16,
+    });
+    expect(getOverlayBarSafeContentStyle('RIGHT', 1)).toEqual({
+      paddingRight: 16,
+    });
+  });
+
+  test('limita o padding do bloco no eixo estreito sem alterar o outro eixo', () => {
+    expect(getOverlayTextBlockPadding('BOTTOM', 10, 18, 60, 1)).toEqual({
+      paddingHorizontal: 18,
+      paddingVertical: 5.7,
+    });
+    expect(getOverlayTextBlockPadding('LEFT', 10, 60, 18, 1)).toEqual({
+      paddingHorizontal: 12,
+      paddingVertical: 18,
+    });
   });
 });

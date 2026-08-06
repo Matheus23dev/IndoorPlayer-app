@@ -10,6 +10,7 @@ export type OverlayBarContentType =
   | 'CLOCK'
   | 'DATE'
   | 'WEATHER'
+  | 'IMAGE'
   | 'SPACER';
 export type OverlayBarFontWeight = 'NORMAL' | 'SEMIBOLD' | 'BOLD';
 export type OverlayBarFontFamily =
@@ -34,6 +35,12 @@ export interface ProgrammingOverlayBarContentItem {
   paddingVertical: number;
   borderRadius: number;
   spacerSize: number;
+  mediaId: string | null;
+  media: PlayerMedia | null;
+  imageSizePercent: number;
+  fit: OverlayBarFit;
+  offsetX: number;
+  offsetY: number;
 }
 
 export interface ProgrammingOverlayBar {

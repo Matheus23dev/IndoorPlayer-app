@@ -125,6 +125,15 @@ function normalizeContentItems(
         paddingVertical: clampNumber(item.paddingVertical, 0, 60, 0),
         borderRadius: clampNumber(item.borderRadius, 0, 60, 0),
         spacerSize: clampNumber(item.spacerSize, 0, 200, 24),
+        mediaId:
+          typeof item.mediaId === 'string' && item.mediaId.trim()
+            ? item.mediaId.trim()
+            : null,
+        media: normalizeContentMedia(item.media),
+        imageSizePercent: clampNumber(item.imageSizePercent, 10, 100, 80),
+        fit: normalizeOverlayBarFit(item.fit),
+        offsetX: clampNumber(item.offsetX, -120, 120, 0),
+        offsetY: clampNumber(item.offsetY, -120, 120, 0),
       },
     ];
   });
@@ -137,12 +146,48 @@ function normalizeContentType(
     value === 'CLOCK' ||
     value === 'DATE' ||
     value === 'WEATHER' ||
+    value === 'IMAGE' ||
     value === 'SPACER'
   ) {
     return value;
   }
 
   return 'TEXT';
+}
+
+function normalizeContentMedia(
+  value: unknown,
+): ProgrammingOverlayBarContentItem['media'] {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const media = value as Record<string, unknown>;
+
+  if (
+    typeof media.id !== 'string' ||
+    typeof media.name !== 'string' ||
+    media.type !== 'IMAGE' ||
+    typeof media.fileUrl !== 'string'
+  ) {
+    return null;
+  }
+
+  return {
+    id: media.id,
+    name: media.name,
+    type: 'IMAGE',
+    fileUrl: media.fileUrl,
+    ...(typeof media.localPath === 'string'
+      ? { localPath: media.localPath }
+      : {}),
+    ...(typeof media.fileSize === 'number' || media.fileSize === null
+      ? { fileSize: media.fileSize }
+      : {}),
+    ...(typeof media.updatedAt === 'string'
+      ? { updatedAt: media.updatedAt }
+      : {}),
+  };
 }
 
 function normalizeFontWeight(

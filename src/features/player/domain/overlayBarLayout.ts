@@ -7,6 +7,8 @@ import type {
 
 const REFERENCE_SHORT_EDGE = 540;
 const REFERENCE_LONG_EDGE = 960;
+const REFERENCE_TV_SAFE_INSET = 16;
+const MAX_BLOCK_CROSS_PADDING_SHARE = 0.15;
 
 export interface OverlayBarInsets {
   top: number;
@@ -74,6 +76,49 @@ export function getOverlayLayoutScale(width: number, height: number) {
   );
 
   return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
+export function getOverlayBarSafeContentStyle(
+  position: OverlayBarPosition,
+  layoutScale: number,
+): ViewStyle {
+  const safeInset = REFERENCE_TV_SAFE_INSET * layoutScale;
+
+  if (position === 'TOP') return { paddingTop: safeInset };
+  if (position === 'BOTTOM') return { paddingBottom: safeInset };
+  if (position === 'LEFT') return { paddingLeft: safeInset };
+  return { paddingRight: safeInset };
+}
+
+export function getOverlayTextBlockPadding(
+  position: OverlayBarPosition,
+  sizePercent: number,
+  paddingHorizontal: number,
+  paddingVertical: number,
+  layoutScale: number,
+) {
+  const isHorizontal = position === 'TOP' || position === 'BOTTOM';
+  const referenceThickness =
+    (isHorizontal ? REFERENCE_SHORT_EDGE : REFERENCE_LONG_EDGE) *
+    (Math.min(40, Math.max(0, sizePercent)) / 100);
+  const maximumCrossAxisPadding = Math.max(
+    0,
+    (referenceThickness - REFERENCE_TV_SAFE_INSET) *
+      MAX_BLOCK_CROSS_PADDING_SHARE,
+  );
+  const safeHorizontal = Math.max(0, paddingHorizontal);
+  const safeVertical = Math.max(0, paddingVertical);
+
+  return {
+    paddingHorizontal:
+      (isHorizontal
+        ? safeHorizontal
+        : Math.min(safeHorizontal, maximumCrossAxisPadding)) * layoutScale,
+    paddingVertical:
+      (isHorizontal
+        ? Math.min(safeVertical, maximumCrossAxisPadding)
+        : safeVertical) * layoutScale,
+  };
 }
 
 function toPercent(value: number): DimensionValue {

@@ -139,6 +139,12 @@ function createLegacyItems(
     paddingVertical: 0,
     borderRadius: 0,
     spacerSize: 24,
+    mediaId: null,
+    media: null,
+    imageSizePercent: 80,
+    fit: 'CONTAIN' as const,
+    offsetX: 0,
+    offsetY: 0,
   };
 
   if (bar.textContent) {

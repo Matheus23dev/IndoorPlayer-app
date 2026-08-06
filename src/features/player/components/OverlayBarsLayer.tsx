@@ -13,6 +13,8 @@ import { useOverlayBarDynamicContent } from '../hooks/useOverlayBarDynamicConten
 import {
   getOverlayBarInsets,
   getOverlayBarPositionStyle,
+  getOverlayBarSafeContentStyle,
+  getOverlayTextBlockPadding,
 } from '../domain/overlayBarLayout';
 
 interface OverlayBarsLayerProps {
@@ -84,6 +86,7 @@ function OverlayBarItem({
       isHorizontal,
       scaleValue(bar.contentPadding, layoutScale),
     ),
+    ...getOverlayBarSafeContentStyle(bar.position, layoutScale),
   };
   const imageStyle: ImageStyle = isHorizontal
     ? { height: imageSize, aspectRatio: 1, maxWidth: '100%' }
@@ -111,21 +114,76 @@ function OverlayBarItem({
             return <View key={item.id} style={spacerStyle} />;
           }
 
+          if (item.type === 'IMAGE') {
+            if (!item.media?.localPath) {
+              return null;
+            }
+
+            const contentImageSize =
+              `${item.imageSizePercent}%` as DimensionValue;
+            const contentImageStyle: ImageStyle = {
+              flexShrink: 0,
+              transform: [
+                {
+                  translateX: scaleSignedValue(item.offsetX, layoutScale),
+                },
+                {
+                  translateY: scaleSignedValue(item.offsetY, layoutScale),
+                },
+              ],
+              ...(isHorizontal
+                ? {
+                    height: contentImageSize,
+                    aspectRatio: 1,
+                    maxWidth: '100%',
+                  }
+                : {
+                    width: contentImageSize,
+                    aspectRatio: 1,
+                    maxHeight: '100%',
+                  }),
+            };
+
+            return (
+              <Image
+                key={item.id}
+                source={{ uri: item.media.localPath }}
+                style={contentImageStyle}
+                resizeMode={toResizeMode(item.fit)}
+                fadeDuration={0}
+              />
+            );
+          }
+
           const fontSize = scaleValue(item.fontSize, layoutScale);
+          const blockPadding = getOverlayTextBlockPadding(
+            bar.position,
+            bar.sizePercent,
+            item.paddingHorizontal,
+            item.paddingVertical,
+            layoutScale,
+          );
           const textStyle: TextStyle = {
             color: item.textColor,
             fontSize,
-            lineHeight: Math.round(fontSize * 1.2),
             fontWeight: toFontWeight(item.fontWeight),
             fontFamily: toFontFamily(item.fontFamily),
             fontStyle: item.italic ? 'italic' : 'normal',
             backgroundColor: item.backgroundColor ?? 'transparent',
-            paddingHorizontal: scaleValue(item.paddingHorizontal, layoutScale),
-            paddingVertical: scaleValue(item.paddingVertical, layoutScale),
+            paddingHorizontal: blockPadding.paddingHorizontal,
+            paddingVertical: blockPadding.paddingVertical,
             borderRadius: scaleValue(item.borderRadius, layoutScale),
             textAlign: 'center',
             textAlignVertical: 'center',
             includeFontPadding: false,
+            transform: [
+              {
+                translateX: scaleSignedValue(item.offsetX, layoutScale),
+              },
+              {
+                translateY: scaleSignedValue(item.offsetY, layoutScale),
+              },
+            ],
           };
 
           return (
@@ -133,7 +191,9 @@ function OverlayBarItem({
               key={item.id}
               numberOfLines={isHorizontal ? 2 : 6}
               adjustsFontSizeToFit
-              minimumFontScale={0.45}
+              minimumFontScale={0.2}
+              allowFontScaling={false}
+              ellipsizeMode="clip"
               style={[styles.text, textStyle]}
             >
               {item.content}
@@ -190,6 +250,10 @@ function toAlignItems(
 
 function scaleValue(value: number, layoutScale: number) {
   return Math.max(0, value * layoutScale);
+}
+
+function scaleSignedValue(value: number, layoutScale: number) {
+  return value * layoutScale;
 }
 
 function toResizeMode(fit: ProgrammingOverlayBar['fit']): ImageResizeMode {
