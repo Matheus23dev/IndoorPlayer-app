@@ -82,7 +82,9 @@ export function useOverlayBarDynamicContent(bar: ProgrammingOverlayBar) {
       minute: '2-digit',
       hour12: false,
     }).format(now);
-    const date = new Intl.DateTimeFormat('pt-BR').format(now);
+    const date = addDateBreakOpportunities(
+      new Intl.DateTimeFormat('pt-BR').format(now),
+    );
     const weekday = new Intl.DateTimeFormat('pt-BR', {
       weekday: 'long',
     }).format(now);
@@ -121,6 +123,10 @@ export function useOverlayBarDynamicContent(bar: ProgrammingOverlayBar) {
       };
     });
   }, [bar, now, weather, weatherLocation]);
+}
+
+export function addDateBreakOpportunities(value: string) {
+  return value.replace(/\//g, '/\u200B');
 }
 
 function createLegacyItems(

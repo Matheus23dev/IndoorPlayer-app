@@ -8,7 +8,8 @@ import type {
 const REFERENCE_SHORT_EDGE = 540;
 const REFERENCE_LONG_EDGE = 960;
 const REFERENCE_TV_SAFE_INSET = 16;
-const REFERENCE_TV_LATERAL_SAFE_INSET = 12;
+const REFERENCE_TV_LATERAL_SAFE_INSET = 24;
+const REFERENCE_LATERAL_INNER_INSET = 4;
 const MAX_BLOCK_CROSS_PADDING_SHARE = 0.15;
 
 export interface OverlayBarInsets {
@@ -111,10 +112,13 @@ export function getOverlayBarSafeContentStyle(
 
   const lateralSafeInset = REFERENCE_TV_LATERAL_SAFE_INSET * layoutScale;
 
-  return {
-    paddingLeft: lateralSafeInset,
-    paddingRight: lateralSafeInset,
-  };
+  const innerInset = REFERENCE_LATERAL_INNER_INSET * layoutScale;
+
+  if (position === 'LEFT') {
+    return { paddingLeft: lateralSafeInset, paddingRight: innerInset };
+  }
+
+  return { paddingLeft: innerInset, paddingRight: lateralSafeInset };
 }
 
 export function getOverlayTextBlockPadding(
@@ -163,6 +167,10 @@ export function getOverlayTextOpticalOffsetY(
   );
 
   return -correction;
+}
+
+export function shouldAdjustOverlayTextToFit(position: OverlayBarPosition) {
+  return position === 'TOP' || position === 'BOTTOM';
 }
 
 function toPercent(value: number): DimensionValue {

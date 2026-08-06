@@ -8,6 +8,7 @@ import {
   getOverlayLayoutScale,
   getOverlayTextOpticalOffsetY,
   getOverlayTextBlockPadding,
+  shouldAdjustOverlayTextToFit,
 } from '../src/features/player/domain/overlayBarLayout';
 
 describe('layout das barras do player', () => {
@@ -86,12 +87,12 @@ describe('layout das barras do player', () => {
       paddingBottom: 24,
     });
     expect(getOverlayBarSafeContentStyle('LEFT', 1)).toEqual({
-      paddingLeft: 12,
-      paddingRight: 12,
+      paddingLeft: 24,
+      paddingRight: 4,
     });
     expect(getOverlayBarSafeContentStyle('RIGHT', 1)).toEqual({
-      paddingLeft: 12,
-      paddingRight: 12,
+      paddingLeft: 4,
+      paddingRight: 24,
     });
   });
 
@@ -110,5 +111,12 @@ describe('layout das barras do player', () => {
     expect(getOverlayTextOpticalOffsetY('BOTTOM', 40, 1)).toBe(-3.2);
     expect(getOverlayTextOpticalOffsetY('TOP', 120, 1)).toBe(-4);
     expect(getOverlayTextOpticalOffsetY('LEFT', 40, 1)).toBe(0);
+  });
+
+  test('reduz a fonte automaticamente apenas nas barras horizontais', () => {
+    expect(shouldAdjustOverlayTextToFit('TOP')).toBe(true);
+    expect(shouldAdjustOverlayTextToFit('BOTTOM')).toBe(true);
+    expect(shouldAdjustOverlayTextToFit('LEFT')).toBe(false);
+    expect(shouldAdjustOverlayTextToFit('RIGHT')).toBe(false);
   });
 });

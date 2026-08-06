@@ -17,6 +17,7 @@ import {
   getOverlayBarSafeContentStyle,
   getOverlayTextOpticalOffsetY,
   getOverlayTextBlockPadding,
+  shouldAdjustOverlayTextToFit,
 } from '../domain/overlayBarLayout';
 
 interface OverlayBarsLayerProps {
@@ -162,6 +163,8 @@ function OverlayBarItem({
             textAlign: 'center',
             textAlignVertical: 'center',
             includeFontPadding: false,
+            width: isHorizontal ? undefined : '100%',
+            flexShrink: isHorizontal ? 1 : 0,
             transform: [
               {
                 translateX: scaleSignedValue(item.offsetX, layoutScale),
@@ -182,10 +185,12 @@ function OverlayBarItem({
             <Text
               key={item.id}
               numberOfLines={isHorizontal ? 2 : 6}
-              adjustsFontSizeToFit
+              adjustsFontSizeToFit={shouldAdjustOverlayTextToFit(bar.position)}
               minimumFontScale={0.2}
               allowFontScaling={false}
               ellipsizeMode="clip"
+              textBreakStrategy="simple"
+              android_hyphenationFrequency="none"
               style={[styles.text, textStyle]}
             >
               {item.content}
