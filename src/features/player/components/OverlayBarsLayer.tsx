@@ -10,36 +10,38 @@ import type {
 
 import type { ProgrammingOverlayBar } from '../types/programming';
 import { useOverlayBarDynamicContent } from '../hooks/useOverlayBarDynamicContent';
+import {
+  getOverlayBarInsets,
+  getOverlayBarPositionStyle,
+} from '../domain/overlayBarLayout';
 
 interface OverlayBarsLayerProps {
   bars: ProgrammingOverlayBar[];
   style: StyleProp<ViewStyle>;
+  layoutScale?: number;
 }
 
-export function OverlayBarsLayer({ bars, style }: OverlayBarsLayerProps) {
+export function OverlayBarsLayer({
+  bars,
+  style,
+  layoutScale = 1,
+}: OverlayBarsLayerProps) {
   if (bars.length === 0) {
     return null;
   }
+
+  const insets = getOverlayBarInsets(bars);
 
   return (
     <View pointerEvents="none" style={[styles.layer, style]}>
       {bars.map(bar => {
         const isHorizontal =
           bar.position === 'TOP' || bar.position === 'BOTTOM';
-        const size = `${bar.sizePercent}%` as DimensionValue;
-        const positionStyle: ViewStyle = isHorizontal
-          ? {
-              left: 0,
-              width: '100%',
-              height: size,
-              ...(bar.position === 'TOP' ? { top: 0 } : { bottom: 0 }),
-            }
-          : {
-              top: 0,
-              height: '100%',
-              width: size,
-              ...(bar.position === 'LEFT' ? { left: 0 } : { right: 0 }),
-            };
+        const positionStyle = getOverlayBarPositionStyle(
+          bar.position,
+          bar.sizePercent,
+          insets,
+        );
 
         return (
           <OverlayBarItem
@@ -47,6 +49,7 @@ export function OverlayBarsLayer({ bars, style }: OverlayBarsLayerProps) {
             bar={bar}
             isHorizontal={isHorizontal}
             positionStyle={positionStyle}
+            layoutScale={layoutScale}
           />
         );
       })}
@@ -58,12 +61,14 @@ interface OverlayBarItemProps {
   bar: ProgrammingOverlayBar;
   isHorizontal: boolean;
   positionStyle: ViewStyle;
+  layoutScale: number;
 }
 
 function OverlayBarItem({
   bar,
   isHorizontal,
   positionStyle,
+  layoutScale,
 }: OverlayBarItemProps) {
   const contentItems = useOverlayBarDynamicContent(bar);
   const imageSize = `${bar.imageSizePercent}%` as DimensionValue;
@@ -73,8 +78,12 @@ function OverlayBarItem({
   const contentStyle: ViewStyle = {
     flexDirection: isHorizontal ? 'row' : 'column',
     justifyContent: toJustifyContent(bar.contentPosition),
-    gap: bar.contentGap,
-    ...getOverlayContentInsetStyle(isHorizontal, bar.contentPadding),
+    alignItems: toAlignItems(bar.contentAlignment),
+    gap: scaleValue(bar.contentGap, layoutScale),
+    ...getOverlayContentInsetStyle(
+      isHorizontal,
+      scaleValue(bar.contentPadding, layoutScale),
+    ),
   };
   const imageStyle: ImageStyle = isHorizontal
     ? { height: imageSize, aspectRatio: 1, maxWidth: '100%' }
@@ -94,23 +103,26 @@ function OverlayBarItem({
 
         {contentItems.map(item => {
           if (item.type === 'SPACER') {
+            const spacerSize = scaleValue(item.spacerSize, layoutScale);
             const spacerStyle: ViewStyle = isHorizontal
-              ? { width: item.spacerSize, height: 1, flexShrink: 0 }
-              : { height: item.spacerSize, width: 1, flexShrink: 0 };
+              ? { width: spacerSize, height: 1, flexShrink: 0 }
+              : { height: spacerSize, width: 1, flexShrink: 0 };
 
             return <View key={item.id} style={spacerStyle} />;
           }
 
+          const fontSize = scaleValue(item.fontSize, layoutScale);
           const textStyle: TextStyle = {
             color: item.textColor,
-            fontSize: item.fontSize,
-            lineHeight: Math.round(item.fontSize * 1.2),
+            fontSize,
+            lineHeight: Math.round(fontSize * 1.2),
             fontWeight: toFontWeight(item.fontWeight),
             fontFamily: toFontFamily(item.fontFamily),
             fontStyle: item.italic ? 'italic' : 'normal',
             backgroundColor: item.backgroundColor ?? 'transparent',
-            padding: item.padding,
-            borderRadius: item.borderRadius,
+            paddingHorizontal: scaleValue(item.paddingHorizontal, layoutScale),
+            paddingVertical: scaleValue(item.paddingVertical, layoutScale),
+            borderRadius: scaleValue(item.borderRadius, layoutScale),
             textAlign: 'center',
             textAlignVertical: 'center',
             includeFontPadding: false,
@@ -168,6 +180,18 @@ function toJustifyContent(
   return 'center';
 }
 
+function toAlignItems(
+  position: ProgrammingOverlayBar['contentAlignment'],
+): ViewStyle['alignItems'] {
+  if (position === 'START') return 'flex-start';
+  if (position === 'END') return 'flex-end';
+  return 'center';
+}
+
+function scaleValue(value: number, layoutScale: number) {
+  return Math.max(0, value * layoutScale);
+}
+
 function toResizeMode(fit: ProgrammingOverlayBar['fit']): ImageResizeMode {
   if (fit === 'COVER') {
     return 'cover';
@@ -209,7 +233,6 @@ const styles = StyleSheet.create({
     minHeight: 0,
     boxSizing: 'border-box',
     overflow: 'hidden',
-    alignItems: 'center',
   },
   image: {
     flexShrink: 0,

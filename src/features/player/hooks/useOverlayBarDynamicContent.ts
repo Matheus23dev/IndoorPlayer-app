@@ -135,6 +135,8 @@ function createLegacyItems(
     italic: false,
     backgroundColor: null,
     padding: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     borderRadius: 0,
     spacerSize: 24,
   };

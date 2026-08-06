@@ -47,6 +47,7 @@ export function normalizeOverlayBar(
     opacity: clampNumber(bar.opacity, 0, 100, 100),
     fit: normalizeOverlayBarFit(bar.fit),
     contentPosition: normalizeContentPosition(bar.contentPosition),
+    contentAlignment: normalizeContentPosition(bar.contentAlignment),
     imageSizePercent: clampNumber(bar.imageSizePercent, 10, 100, 80),
     contentPadding: clampNumber(bar.contentPadding, 0, 120, 6),
     contentGap: clampNumber(bar.contentGap, 0, 120, 8),
@@ -85,6 +86,7 @@ function normalizeContentItems(
 
     const item = candidate as Record<string, unknown>;
     const type = normalizeContentType(item.type);
+    const legacyPadding = clampNumber(item.padding, 0, 60, 0);
 
     if (
       type === 'TEXT' &&
@@ -113,7 +115,14 @@ function normalizeContentItems(
           typeof item.backgroundColor === 'string' && item.backgroundColor
             ? normalizeHexColor(item.backgroundColor, '#000000')
             : null,
-        padding: clampNumber(item.padding, 0, 60, 0),
+        padding: legacyPadding,
+        paddingHorizontal: clampNumber(
+          item.paddingHorizontal,
+          0,
+          60,
+          legacyPadding,
+        ),
+        paddingVertical: clampNumber(item.paddingVertical, 0, 60, 0),
         borderRadius: clampNumber(item.borderRadius, 0, 60, 0),
         spacerSize: clampNumber(item.spacerSize, 0, 200, 24),
       },

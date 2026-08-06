@@ -919,6 +919,7 @@ class PlayerEngine {
         opacity: bar.opacity,
         fit: bar.fit,
         contentPosition: bar.contentPosition,
+        contentAlignment: bar.contentAlignment,
         imageSizePercent: bar.imageSizePercent,
         contentPadding: bar.contentPadding,
         contentGap: bar.contentGap,

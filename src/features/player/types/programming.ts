@@ -30,6 +30,8 @@ export interface ProgrammingOverlayBarContentItem {
   italic: boolean;
   backgroundColor: string | null;
   padding: number;
+  paddingHorizontal: number;
+  paddingVertical: number;
   borderRadius: number;
   spacerSize: number;
 }
@@ -43,6 +45,7 @@ export interface ProgrammingOverlayBar {
   opacity: number;
   fit: OverlayBarFit;
   contentPosition: OverlayBarContentPosition;
+  contentAlignment: OverlayBarContentPosition;
   imageSizePercent: number;
   contentPadding: number;
   contentGap: number;
@@ -66,6 +69,7 @@ export interface ProgrammingOverlayBarInput
     | 'opacity'
     | 'fit'
     | 'contentPosition'
+    | 'contentAlignment'
     | 'imageSizePercent'
     | 'contentPadding'
     | 'contentGap'
@@ -82,6 +86,7 @@ export interface ProgrammingOverlayBarInput
   opacity?: unknown;
   fit?: unknown;
   contentPosition?: unknown;
+  contentAlignment?: unknown;
   imageSizePercent?: unknown;
   contentPadding?: unknown;
   contentGap?: unknown;

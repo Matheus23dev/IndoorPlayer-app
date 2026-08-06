@@ -21,6 +21,11 @@ import {
 import { usePlayer } from '../hooks/usePlayer';
 import { useVideoPlayback } from '../hooks/useVideoPlayback';
 import { OverlayBarsLayer } from '../components/OverlayBarsLayer';
+import {
+  getMediaFrameStyle,
+  getOverlayBarInsets,
+  getOverlayLayoutScale,
+} from '../domain/overlayBarLayout';
 
 const MISSING_FILE_SKIP_DELAY_MS = 1_000;
 
@@ -73,8 +78,13 @@ export function PlayerScreen() {
       }
     : undefined;
 
-  const mediaStyle = [styles.media, rotatedCanvasStyle];
-  const overlayStyle = [styles.overlayCanvas, rotatedCanvasStyle];
+  const overlayInsets = getOverlayBarInsets(bars);
+  const layoutScale = getOverlayLayoutScale(viewport.width, viewport.height);
+  const playbackCanvasStyle = [styles.playbackCanvas, rotatedCanvasStyle];
+  const mediaFrameStyle = [
+    styles.mediaFrame,
+    getMediaFrameStyle(overlayInsets),
+  ];
 
   useEffect(() => {
     // A TV Box deve continuar em landscape. Playlists verticais são giradas
@@ -150,37 +160,45 @@ export function PlayerScreen() {
       <StatusBar hidden />
 
       <View style={styles.viewport}>
-        {isImage && (
-          <Image
-            key={`${currentItem.id}-${playbackKey}-${orientation}`}
-            source={{ uri: localPath }}
-            style={mediaStyle}
-            resizeMode="contain"
-            fadeDuration={0}
-            onError={handleImageError}
-          />
-        )}
+        <View style={playbackCanvasStyle}>
+          <View style={mediaFrameStyle}>
+            {isImage && (
+              <Image
+                key={`${currentItem.id}-${playbackKey}-${orientation}`}
+                source={{ uri: localPath }}
+                style={styles.media}
+                resizeMode="contain"
+                fadeDuration={0}
+                onError={handleImageError}
+              />
+            )}
 
-        {isVideo && (
-          <Video
-            key={`${currentItem.id}-${playbackKey}-${orientation}`}
-            source={{ uri: localPath }}
-            style={mediaStyle}
-            resizeMode="contain"
-            paused={false}
-            repeat={false}
-            controls={false}
-            muted={muted}
-            volume={muted ? 0 : 1}
-            progressUpdateInterval={250}
-            onLoad={handleLoad}
-            onProgress={handleProgress}
-            onEnd={handleEnd}
-            onError={handleError}
-          />
-        )}
+            {isVideo && (
+              <Video
+                key={`${currentItem.id}-${playbackKey}-${orientation}`}
+                source={{ uri: localPath }}
+                style={styles.media}
+                resizeMode="contain"
+                paused={false}
+                repeat={false}
+                controls={false}
+                muted={muted}
+                volume={muted ? 0 : 1}
+                progressUpdateInterval={250}
+                onLoad={handleLoad}
+                onProgress={handleProgress}
+                onEnd={handleEnd}
+                onError={handleError}
+              />
+            )}
+          </View>
 
-        <OverlayBarsLayer bars={bars} style={overlayStyle} />
+          <OverlayBarsLayer
+            bars={bars}
+            style={styles.overlayCanvas}
+            layoutScale={layoutScale}
+          />
+        </View>
 
         {hasPendingPlaylist && (
           <View style={styles.pendingIndicator} pointerEvents="none" />
@@ -204,10 +222,20 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#000000',
   },
-  media: {
+  playbackCanvas: {
     position: 'absolute',
     left: 0,
     top: 0,
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  mediaFrame: {
+    position: 'absolute',
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+  },
+  media: {
     width: '100%',
     height: '100%',
     backgroundColor: '#000000',
