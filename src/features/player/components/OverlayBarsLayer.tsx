@@ -88,11 +88,7 @@ function OverlayBarItem({
       isHorizontal,
       scaleValue(bar.contentPadding, layoutScale),
     ),
-    ...getOverlayBarSafeContentStyle(
-      bar.position,
-      layoutScale,
-      bar.contentAlignment,
-    ),
+    ...getOverlayBarSafeContentStyle(bar.position, layoutScale),
   };
 
   return (
@@ -234,6 +230,7 @@ function OverlayContentImage({
       source={{ uri }}
       style={imageStyle}
       resizeMode={toResizeMode(fit)}
+      resizeMethod="scale"
       fadeDuration={0}
       onLoad={event => {
         const { width, height } = event.nativeEvent.source;

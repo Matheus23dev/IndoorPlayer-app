@@ -86,19 +86,12 @@ describe('layout das barras do player', () => {
       paddingBottom: 24,
     });
     expect(getOverlayBarSafeContentStyle('LEFT', 1)).toEqual({
-      paddingLeft: 16,
+      paddingLeft: 12,
+      paddingRight: 12,
     });
     expect(getOverlayBarSafeContentStyle('RIGHT', 1)).toEqual({
-      paddingRight: 16,
-    });
-    expect(getOverlayBarSafeContentStyle('LEFT', 1, 'CENTER')).toEqual({});
-    expect(getOverlayBarSafeContentStyle('LEFT', 1, 'END')).toEqual({});
-    expect(getOverlayBarSafeContentStyle('LEFT', 1, 'START')).toEqual({
-      paddingLeft: 16,
-    });
-    expect(getOverlayBarSafeContentStyle('RIGHT', 1, 'START')).toEqual({});
-    expect(getOverlayBarSafeContentStyle('RIGHT', 1, 'END')).toEqual({
-      paddingRight: 16,
+      paddingLeft: 12,
+      paddingRight: 12,
     });
   });
 

@@ -8,6 +8,7 @@ import type {
 const REFERENCE_SHORT_EDGE = 540;
 const REFERENCE_LONG_EDGE = 960;
 const REFERENCE_TV_SAFE_INSET = 16;
+const REFERENCE_TV_LATERAL_SAFE_INSET = 12;
 const MAX_BLOCK_CROSS_PADDING_SHARE = 0.15;
 
 export interface OverlayBarInsets {
@@ -102,21 +103,18 @@ export function getOverlayLayoutScale(width: number, height: number) {
 export function getOverlayBarSafeContentStyle(
   position: OverlayBarPosition,
   layoutScale: number,
-  contentAlignment?: ProgrammingOverlayBar['contentAlignment'],
 ): ViewStyle {
   const safeInset = REFERENCE_TV_SAFE_INSET * layoutScale;
 
   if (position === 'TOP') return { paddingTop: safeInset };
   if (position === 'BOTTOM') return { paddingBottom: safeInset };
-  if (position === 'LEFT') {
-    return contentAlignment && contentAlignment !== 'START'
-      ? {}
-      : { paddingLeft: safeInset };
-  }
 
-  return contentAlignment && contentAlignment !== 'END'
-    ? {}
-    : { paddingRight: safeInset };
+  const lateralSafeInset = REFERENCE_TV_LATERAL_SAFE_INSET * layoutScale;
+
+  return {
+    paddingLeft: lateralSafeInset,
+    paddingRight: lateralSafeInset,
+  };
 }
 
 export function getOverlayTextBlockPadding(
