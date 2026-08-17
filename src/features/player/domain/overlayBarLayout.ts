@@ -109,12 +109,16 @@ export function getOverlayBarSafeContentStyle(
   if (position === 'TOP') return { paddingTop: safeInset };
   if (position === 'BOTTOM') return { paddingBottom: safeInset };
 
-  const lateralSafeInset = REFERENCE_TV_LATERAL_SAFE_INSET * layoutScale;
+  const lateralSafeInset = getOverlayLateralSafeInset(layoutScale);
 
   return {
     paddingLeft: lateralSafeInset,
     paddingRight: lateralSafeInset,
   };
+}
+
+export function getOverlayLateralSafeInset(layoutScale: number) {
+  return REFERENCE_TV_LATERAL_SAFE_INSET * Math.max(0, layoutScale);
 }
 
 export function getOverlayTextBlockPadding(

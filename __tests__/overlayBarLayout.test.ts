@@ -1,4 +1,10 @@
-import { getOverlayContentInsetStyle } from '../src/features/player/components/OverlayBarsLayer';
+import {
+  getLateralImageSafeOffsetX,
+  getOverlayContentInsetStyle,
+  getOverlayImageSizeStyle,
+  resolveOverlayImageSize,
+  shouldAllowLateralImageOverflow,
+} from '../src/features/player/components/OverlayBarsLayer';
 import {
   getMediaFrameStyle,
   getMediaFrameInsets,
@@ -118,5 +124,25 @@ describe('layout das barras do player', () => {
     expect(shouldAdjustOverlayTextToFit('BOTTOM')).toBe(true);
     expect(shouldAdjustOverlayTextToFit('LEFT')).toBe(false);
     expect(shouldAdjustOverlayTextToFit('RIGHT')).toBe(false);
+  });
+
+  test('amplia imagens sem limitar o eixo oposto', () => {
+    expect(getOverlayImageSizeStyle(false, '300%')).toEqual({
+      width: '300%',
+    });
+    expect(getOverlayImageSizeStyle(true, '300%')).toEqual({
+      height: '300%',
+    });
+  });
+
+  test('mantém imagens ampliadas inteiras no lado interno da tela', () => {
+    expect(shouldAllowLateralImageOverflow(false, 'CONTAIN', 209)).toBe(true);
+    expect(shouldAllowLateralImageOverflow(false, 'COVER', 209)).toBe(false);
+    expect(shouldAllowLateralImageOverflow(true, 'CONTAIN', 209)).toBe(false);
+    expect(getLateralImageSafeOffsetX('LEFT', 'CENTER', 1.5)).toBe(24);
+    expect(getLateralImageSafeOffsetX('RIGHT', 'CENTER', 1.5)).toBe(-24);
+    expect(getLateralImageSafeOffsetX('LEFT', 'START', 1.5)).toBe(0);
+    expect(resolveOverlayImageSize(false, 209, 80)).toBeCloseTo(167.2);
+    expect(resolveOverlayImageSize(true, 209, 48)).toBe('209%');
   });
 });

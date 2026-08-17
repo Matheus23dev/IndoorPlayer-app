@@ -48,7 +48,7 @@ export function normalizeOverlayBar(
     fit: normalizeOverlayBarFit(bar.fit),
     contentPosition: normalizeContentPosition(bar.contentPosition),
     contentAlignment: normalizeContentPosition(bar.contentAlignment),
-    imageSizePercent: clampNumber(bar.imageSizePercent, 10, 300, 80),
+    imageSizePercent: clampNumber(bar.imageSizePercent, 10, 600, 80),
     contentPadding: clampNumber(bar.contentPadding, 0, 120, 6),
     contentGap: clampNumber(bar.contentGap, 0, 120, 8),
     contentItems: normalizeContentItems(bar.contentItems),
@@ -130,7 +130,7 @@ function normalizeContentItems(
             ? item.mediaId.trim()
             : null,
         media: normalizeContentMedia(item.media),
-        imageSizePercent: clampNumber(item.imageSizePercent, 10, 300, 80),
+        imageSizePercent: clampNumber(item.imageSizePercent, 10, 600, 80),
         fit: normalizeOverlayBarFit(item.fit),
         offsetX: clampNumber(item.offsetX, -120, 120, 0),
         offsetY: clampNumber(item.offsetY, -120, 120, 0),

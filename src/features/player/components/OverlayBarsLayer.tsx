@@ -4,6 +4,7 @@ import type {
   DimensionValue,
   ImageStyle,
   ImageResizeMode,
+  LayoutChangeEvent,
   StyleProp,
   TextStyle,
   ViewStyle,
@@ -13,6 +14,7 @@ import type { ProgrammingOverlayBar } from '../types/programming';
 import { useOverlayBarDynamicContent } from '../hooks/useOverlayBarDynamicContent';
 import {
   getOverlayBarInsets,
+  getOverlayLateralSafeInset,
   getOverlayBarPositionStyle,
   getOverlayBarSafeContentStyle,
   getOverlayTextOpticalOffsetY,
@@ -75,10 +77,31 @@ function OverlayBarItem({
   positionStyle,
   layoutScale,
 }: OverlayBarItemProps) {
+  const [barCrossAxisSize, setBarCrossAxisSize] = useState(0);
   const contentItems = useOverlayBarDynamicContent(bar);
-  const imageSize = `${bar.imageSizePercent}%` as DimensionValue;
+  const imageSafeOffsetX = getLateralImageSafeOffsetX(
+    bar.position,
+    bar.contentAlignment,
+    layoutScale,
+  );
+  const allowLateralImageOverflow =
+    shouldAllowLateralImageOverflow(
+      isHorizontal,
+      bar.fit,
+      bar.imageSizePercent,
+    ) ||
+    contentItems.some(
+      item =>
+        item.type === 'IMAGE' &&
+        shouldAllowLateralImageOverflow(
+          isHorizontal,
+          item.fit,
+          item.imageSizePercent,
+        ),
+    );
   const barStyle: ViewStyle = {
     backgroundColor: toRgba(bar.backgroundColor, bar.opacity),
+    overflow: allowLateralImageOverflow ? 'visible' : 'hidden',
   };
   const contentStyle: ViewStyle = {
     flexDirection: isHorizontal ? 'row' : 'column',
@@ -90,17 +113,35 @@ function OverlayBarItem({
       scaleValue(bar.contentPadding, layoutScale),
     ),
     ...getOverlayBarSafeContentStyle(bar.position, layoutScale),
+    overflow: allowLateralImageOverflow ? 'visible' : 'hidden',
   };
 
   return (
-    <View style={[styles.bar, positionStyle, barStyle]}>
+    <View
+      onLayout={(event: LayoutChangeEvent) => {
+        const { width, height } = event.nativeEvent.layout;
+        const nextSize = isHorizontal ? height : width;
+
+        setBarCrossAxisSize(currentSize =>
+          Math.abs(currentSize - nextSize) < 0.5 ? currentSize : nextSize,
+        );
+      }}
+      style={[styles.bar, positionStyle, barStyle]}
+    >
       <View style={[styles.content, contentStyle]}>
         {bar.media?.localPath ? (
           <OverlayContentImage
             uri={bar.media.localPath}
             fit={bar.fit}
-            size={imageSize}
+            sizePercent={bar.imageSizePercent}
             isHorizontal={isHorizontal}
+            alignment={bar.contentAlignment}
+            barCrossAxisSize={barCrossAxisSize}
+            transform={
+              imageSafeOffsetX === 0
+                ? undefined
+                : [{ translateX: imageSafeOffsetX }]
+            }
           />
         ) : null}
 
@@ -119,11 +160,11 @@ function OverlayBarItem({
               return null;
             }
 
-            const contentImageSize =
-              `${item.imageSizePercent}%` as DimensionValue;
             const transform: ImageStyle['transform'] = [
               {
-                translateX: scaleSignedValue(item.offsetX, layoutScale),
+                translateX:
+                  scaleSignedValue(item.offsetX, layoutScale) +
+                  imageSafeOffsetX,
               },
               {
                 translateY: scaleSignedValue(item.offsetY, layoutScale),
@@ -135,8 +176,10 @@ function OverlayBarItem({
                 key={item.id}
                 uri={item.media.localPath}
                 fit={item.fit}
-                size={contentImageSize}
+                sizePercent={item.imageSizePercent}
                 isHorizontal={isHorizontal}
+                alignment={bar.contentAlignment}
+                barCrossAxisSize={barCrossAxisSize}
                 transform={transform}
               />
             );
@@ -205,29 +248,36 @@ function OverlayBarItem({
 interface OverlayContentImageProps {
   uri: string;
   fit: ProgrammingOverlayBar['fit'];
-  size: DimensionValue;
+  sizePercent: number;
   isHorizontal: boolean;
+  alignment: ProgrammingOverlayBar['contentAlignment'];
+  barCrossAxisSize: number;
   transform?: ImageStyle['transform'];
 }
 
 function OverlayContentImage({
   uri,
   fit,
-  size,
+  sizePercent,
   isHorizontal,
+  alignment,
+  barCrossAxisSize,
   transform,
 }: OverlayContentImageProps) {
   const [loadedImage, setLoadedImage] = useState({ uri, aspectRatio: 1 });
   const naturalAspectRatio =
     loadedImage.uri === uri ? loadedImage.aspectRatio : 1;
+  const size = resolveOverlayImageSize(
+    isHorizontal,
+    sizePercent,
+    barCrossAxisSize,
+  );
 
   const imageStyle: ImageStyle = {
     flexShrink: 0,
     aspectRatio: fit === 'CONTAIN' ? naturalAspectRatio : 1,
     transform,
-    ...(isHorizontal
-      ? { height: size, maxWidth: '100%' }
-      : { width: size, maxHeight: '100%' }),
+    ...getOverlayImageSizeStyle(isHorizontal, size),
   };
 
   const image = (
@@ -251,7 +301,63 @@ function OverlayContentImage({
     return image;
   }
 
-  return <View style={styles.verticalImageFrame}>{image}</View>;
+  return (
+    <View
+      style={[
+        styles.verticalImageFrame,
+        { alignItems: toAlignItems(alignment) },
+      ]}
+    >
+      {image}
+    </View>
+  );
+}
+
+export function getOverlayImageSizeStyle(
+  isHorizontal: boolean,
+  size: DimensionValue,
+): ImageStyle {
+  return isHorizontal ? { height: size } : { width: size };
+}
+
+export function resolveOverlayImageSize(
+  isHorizontal: boolean,
+  sizePercent: number,
+  barCrossAxisSize: number,
+): DimensionValue {
+  if (isHorizontal || barCrossAxisSize <= 0) {
+    return `${sizePercent}%` as DimensionValue;
+  }
+
+  return (barCrossAxisSize * sizePercent) / 100;
+}
+
+export function shouldAllowLateralImageOverflow(
+  isHorizontal: boolean,
+  fit: ProgrammingOverlayBar['fit'],
+  sizePercent: number,
+) {
+  return !isHorizontal && fit === 'CONTAIN' && sizePercent > 100;
+}
+
+export function getLateralImageSafeOffsetX(
+  position: ProgrammingOverlayBar['position'],
+  alignment: ProgrammingOverlayBar['contentAlignment'],
+  layoutScale: number,
+) {
+  if (alignment !== 'CENTER') {
+    return 0;
+  }
+
+  if (position === 'LEFT') {
+    return getOverlayLateralSafeInset(layoutScale);
+  }
+
+  if (position === 'RIGHT') {
+    return -getOverlayLateralSafeInset(layoutScale);
+  }
+
+  return 0;
 }
 
 export function getOverlayContentInsetStyle(
