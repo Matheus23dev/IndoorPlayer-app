@@ -490,6 +490,11 @@ class PlayerEngine {
         orientation: playlist.orientation,
         bars: playlist.bars,
       });
+    } else if (occurrenceChanged) {
+      // Ao reabrir o app, os gerenciadores preservam a playlist, mas o estado
+      // operacional da engine é recriado. Reinicie a reprodução da playlist
+      // já carregada para não permanecer com a tela preta após o stop acima.
+      playbackManager.load(playlistManager.getCurrent());
     }
   }
 

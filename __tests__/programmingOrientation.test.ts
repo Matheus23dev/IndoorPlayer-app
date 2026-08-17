@@ -189,7 +189,7 @@ describe('orientação da playlist', () => {
       fit: 'CONTAIN',
       contentPosition: 'CENTER',
       contentAlignment: 'CENTER',
-      imageSizePercent: 100,
+      imageSizePercent: 300,
       contentPadding: 120,
       contentGap: 0,
       contentItems: [],

@@ -230,7 +230,7 @@ function OverlayContentImage({
       : { width: size, maxHeight: '100%' }),
   };
 
-  return (
+  const image = (
     <Image
       source={{ uri }}
       style={imageStyle}
@@ -246,6 +246,12 @@ function OverlayContentImage({
       }}
     />
   );
+
+  if (isHorizontal) {
+    return image;
+  }
+
+  return <View style={styles.verticalImageFrame}>{image}</View>;
 }
 
 export function getOverlayContentInsetStyle(
@@ -342,6 +348,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: {
+    flexShrink: 0,
+  },
+  verticalImageFrame: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
     flexShrink: 0,
   },
   text: {

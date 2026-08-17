@@ -87,12 +87,12 @@ describe('layout das barras do player', () => {
       paddingBottom: 24,
     });
     expect(getOverlayBarSafeContentStyle('LEFT', 1)).toEqual({
-      paddingLeft: 24,
-      paddingRight: 4,
+      paddingLeft: 16,
+      paddingRight: 16,
     });
     expect(getOverlayBarSafeContentStyle('RIGHT', 1)).toEqual({
-      paddingLeft: 4,
-      paddingRight: 24,
+      paddingLeft: 16,
+      paddingRight: 16,
     });
   });
 
