@@ -10,7 +10,10 @@ import type {
   ViewStyle,
 } from 'react-native';
 
-import type { ProgrammingOverlayBar } from '../types/programming';
+import type {
+  PlaylistOrientation,
+  ProgrammingOverlayBar,
+} from '../types/programming';
 import { useOverlayBarDynamicContent } from '../hooks/useOverlayBarDynamicContent';
 import {
   getOverlayBarInsets,
@@ -26,12 +29,16 @@ interface OverlayBarsLayerProps {
   bars: ProgrammingOverlayBar[];
   style: StyleProp<ViewStyle>;
   layoutScale?: number;
+  orientation: PlaylistOrientation;
 }
+
+const IMAGE_ANDROID_OPTICAL_CORRECTION = 8;
 
 export function OverlayBarsLayer({
   bars,
   style,
   layoutScale = 1,
+  orientation,
 }: OverlayBarsLayerProps) {
   if (bars.length === 0) {
     return null;
@@ -57,6 +64,7 @@ export function OverlayBarsLayer({
             isHorizontal={isHorizontal}
             positionStyle={positionStyle}
             layoutScale={layoutScale}
+            orientation={orientation}
           />
         );
       })}
@@ -69,6 +77,7 @@ interface OverlayBarItemProps {
   isHorizontal: boolean;
   positionStyle: ViewStyle;
   layoutScale: number;
+  orientation: PlaylistOrientation;
 }
 
 function OverlayBarItem({
@@ -76,11 +85,13 @@ function OverlayBarItem({
   isHorizontal,
   positionStyle,
   layoutScale,
+  orientation,
 }: OverlayBarItemProps) {
   const [barCrossAxisSize, setBarCrossAxisSize] = useState(0);
   const contentItems = useOverlayBarDynamicContent(bar);
-  const imageSafeOffsetX = getLateralImageSafeOffsetX(
+  const imageSafeOffset = getOverlayImageSafeOffset(
     bar.position,
+    orientation,
     bar.contentAlignment,
     layoutScale,
   );
@@ -137,11 +148,7 @@ function OverlayBarItem({
             isHorizontal={isHorizontal}
             alignment={bar.contentAlignment}
             barCrossAxisSize={barCrossAxisSize}
-            transform={
-              imageSafeOffsetX === 0
-                ? undefined
-                : [{ translateX: imageSafeOffsetX }]
-            }
+            transform={toImageSafeTransform(imageSafeOffset)}
           />
         ) : null}
 
@@ -164,10 +171,12 @@ function OverlayBarItem({
               {
                 translateX:
                   scaleSignedValue(item.offsetX, layoutScale) +
-                  imageSafeOffsetX,
+                  imageSafeOffset.x,
               },
               {
-                translateY: scaleSignedValue(item.offsetY, layoutScale),
+                translateY:
+                  scaleSignedValue(item.offsetY, layoutScale) +
+                  imageSafeOffset.y,
               },
             ];
 
@@ -340,24 +349,50 @@ export function shouldAllowLateralImageOverflow(
   return !isHorizontal && fit === 'CONTAIN' && sizePercent > 100;
 }
 
-export function getLateralImageSafeOffsetX(
+export function getOverlayImageSafeOffset(
   position: ProgrammingOverlayBar['position'],
+  orientation: PlaylistOrientation,
   alignment: ProgrammingOverlayBar['contentAlignment'],
   layoutScale: number,
 ) {
   if (alignment !== 'CENTER') {
-    return 0;
+    return { x: 0, y: 0 };
+  }
+
+  const opticalCorrection =
+    IMAGE_ANDROID_OPTICAL_CORRECTION * Math.max(0, layoutScale);
+  const safeOffset =
+    getOverlayLateralSafeInset(layoutScale) + opticalCorrection;
+
+  if (orientation === 'PORTRAIT') {
+    if (position === 'TOP') {
+      return { x: 0, y: safeOffset };
+    }
+
+    if (position === 'BOTTOM') {
+      return { x: 0, y: -safeOffset };
+    }
+
+    return { x: 0, y: 0 };
   }
 
   if (position === 'LEFT') {
-    return getOverlayLateralSafeInset(layoutScale);
+    return { x: safeOffset, y: 0 };
   }
 
   if (position === 'RIGHT') {
-    return -getOverlayLateralSafeInset(layoutScale);
+    return { x: -safeOffset, y: 0 };
   }
 
-  return 0;
+  return { x: 0, y: 0 };
+}
+
+function toImageSafeTransform(offset: { x: number; y: number }) {
+  if (offset.x === 0 && offset.y === 0) {
+    return undefined;
+  }
+
+  return [{ translateX: offset.x }, { translateY: offset.y }];
 }
 
 export function getOverlayContentInsetStyle(

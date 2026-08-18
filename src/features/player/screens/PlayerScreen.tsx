@@ -194,6 +194,7 @@ export function PlayerScreen() {
             bars={bars}
             style={styles.overlayCanvas}
             layoutScale={layoutScale}
+            orientation={orientation}
           />
         </View>
 

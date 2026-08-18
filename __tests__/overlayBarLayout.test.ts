@@ -1,6 +1,6 @@
 import {
-  getLateralImageSafeOffsetX,
   getOverlayContentInsetStyle,
+  getOverlayImageSafeOffset,
   getOverlayImageSizeStyle,
   resolveOverlayImageSize,
   shouldAllowLateralImageOverflow,
@@ -139,9 +139,24 @@ describe('layout das barras do player', () => {
     expect(shouldAllowLateralImageOverflow(false, 'CONTAIN', 209)).toBe(true);
     expect(shouldAllowLateralImageOverflow(false, 'COVER', 209)).toBe(false);
     expect(shouldAllowLateralImageOverflow(true, 'CONTAIN', 209)).toBe(false);
-    expect(getLateralImageSafeOffsetX('LEFT', 'CENTER', 1.5)).toBe(24);
-    expect(getLateralImageSafeOffsetX('RIGHT', 'CENTER', 1.5)).toBe(-24);
-    expect(getLateralImageSafeOffsetX('LEFT', 'START', 1.5)).toBe(0);
+    expect(
+      getOverlayImageSafeOffset('LEFT', 'LANDSCAPE', 'CENTER', 1.5),
+    ).toEqual({ x: 36, y: 0 });
+    expect(
+      getOverlayImageSafeOffset('RIGHT', 'LANDSCAPE', 'CENTER', 1.5),
+    ).toEqual({ x: -36, y: 0 });
+    expect(
+      getOverlayImageSafeOffset('LEFT', 'LANDSCAPE', 'START', 1.5),
+    ).toEqual({ x: 0, y: 0 });
+    expect(
+      getOverlayImageSafeOffset('LEFT', 'PORTRAIT', 'CENTER', 1.5),
+    ).toEqual({ x: 0, y: 0 });
+    expect(getOverlayImageSafeOffset('TOP', 'PORTRAIT', 'CENTER', 1.5)).toEqual(
+      { x: 0, y: 36 },
+    );
+    expect(
+      getOverlayImageSafeOffset('BOTTOM', 'PORTRAIT', 'CENTER', 1.5),
+    ).toEqual({ x: 0, y: -36 });
     expect(resolveOverlayImageSize(false, 209, 80)).toBeCloseTo(167.2);
     expect(resolveOverlayImageSize(true, 209, 48)).toBe('209%');
   });
