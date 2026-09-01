@@ -102,6 +102,29 @@ export class PlaybackManager {
     this.activatePlaylist(orderedItems);
   }
 
+  ensurePlaying(items: PlayerItem[]) {
+    const orderedItems = sortPlayerItems(items);
+
+    if (orderedItems.length === 0) {
+      return false;
+    }
+
+    const hasActivePlayback =
+      this.playlist.length > 0 &&
+      this.getCurrentItem() !== null &&
+      this.currentItemStartedAt !== null;
+
+    if (hasActivePlayback) {
+      return false;
+    }
+
+    this.pendingPlaylist = null;
+
+    this.activatePlaylist(orderedItems);
+
+    return true;
+  }
+
   next() {
     this.clearImageTimer();
 

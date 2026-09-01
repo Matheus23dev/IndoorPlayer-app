@@ -63,4 +63,33 @@ describe('PlaybackManager', () => {
     expect(manager.getCurrentItem()?.duration).toBe(45);
     expect(manager.getSnapshot().hasPendingPlaylist).toBe(false);
   });
+
+  test('recupera a playlist quando a reprodução foi interrompida', () => {
+    const manager = new PlaybackManager();
+    const item = videoItem();
+
+    manager.load([item]);
+    manager.stop();
+
+    const recovered = manager.ensurePlaying([item]);
+
+    expect(recovered).toBe(true);
+    expect(manager.getCurrentItem()).toEqual(item);
+    expect(manager.getPlaybackState().startedAt).not.toBeNull();
+  });
+
+  test('não reinicia uma playlist que continua sendo reproduzida', () => {
+    const manager = new PlaybackManager();
+    const item = videoItem();
+
+    manager.load([item]);
+    const initialKey = manager.getSnapshot().playbackKey;
+
+    const recovered = manager.ensurePlaying([
+      { ...item, media: { ...item.media } },
+    ]);
+
+    expect(recovered).toBe(false);
+    expect(manager.getSnapshot().playbackKey).toBe(initialKey);
+  });
 });

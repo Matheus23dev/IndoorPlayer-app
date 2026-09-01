@@ -12,11 +12,21 @@ interface TvPowerContext {
 interface CecCommandResult {
   action: string;
   executable: string;
+  executionMode: 'PRIVILEGED_APP' | 'ROOT_FALLBACK';
   output: string;
   logPath: string;
 }
 
-interface CecNativeModule {
+export interface CecCapabilities {
+  android: boolean;
+  hdmiCecFeature: boolean;
+  hdmiCecPermissionGranted: boolean;
+  privilegedApp: boolean;
+  rootFallbackAvailable: boolean;
+  executionMode: 'PRIVILEGED_APP' | 'ROOT_FALLBACK' | 'UNAVAILABLE';
+}
+
+export interface CecNativeModule {
   turnOn: (
     reason: string,
     occurrenceId: string | null,
@@ -28,13 +38,17 @@ interface CecNativeModule {
   ) => Promise<CecCommandResult>;
 
   diagnose: () => Promise<CecCommandResult>;
+
+  queryPowerStatus: () => Promise<string | null>;
+
+  getCapabilities: () => Promise<CecCapabilities>;
 }
 
 const nativeCecModule = NativeModules.CecModule as CecNativeModule | undefined;
 
 const FAILURE_RETRY_DELAY_MS = 30_000;
 
-class TvPowerManager {
+export class TvPowerManager {
   private desiredState: TvPowerState | null = null;
   private desiredContext: TvPowerContext | null = null;
   private appliedState: TvPowerState | null = null;
@@ -43,6 +57,11 @@ class TvPowerManager {
   private retryTimer?: ReturnType<typeof setTimeout>;
 
   private lastFailureAt = 0;
+
+  constructor(
+    private readonly cecModule: CecNativeModule | undefined = nativeCecModule,
+    private readonly platform: string = Platform.OS,
+  ) {}
 
   turnOn(context: TvPowerContext) {
     return this.requestState('ON', context);
@@ -55,7 +74,28 @@ class TvPowerManager {
   async diagnose() {
     this.assertAvailable();
 
-    return nativeCecModule!.diagnose();
+    return this.cecModule!.diagnose();
+  }
+
+  async getCapabilities() {
+    this.assertAvailable();
+
+    return this.cecModule!.getCapabilities();
+  }
+
+  async queryPowerStatus() {
+    this.assertAvailable();
+
+    const status = await this.cecModule!.queryPowerStatus();
+    const normalizedStatus = status?.trim().toUpperCase() ?? null;
+
+    if (normalizedStatus === 'ON') {
+      this.appliedState = 'ON';
+    } else if (normalizedStatus === 'STANDBY') {
+      this.appliedState = 'STANDBY';
+    }
+
+    return normalizedStatus;
   }
 
   getAppliedState() {
@@ -119,11 +159,8 @@ class TvPowerManager {
 
       const result =
         state === 'ON'
-          ? await nativeCecModule!.turnOn(context.reason, context.occurrenceId)
-          : await nativeCecModule!.standby(
-              context.reason,
-              context.occurrenceId,
-            );
+          ? await this.cecModule!.turnOn(context.reason, context.occurrenceId)
+          : await this.cecModule!.standby(context.reason, context.occurrenceId);
 
       this.appliedState = state;
       this.lastFailureAt = 0;
@@ -220,11 +257,11 @@ class TvPowerManager {
   }
 
   private assertAvailable() {
-    if (Platform.OS !== 'android') {
+    if (this.platform !== 'android') {
       throw new Error('Controle HDMI-CEC disponível somente no Android.');
     }
 
-    if (!nativeCecModule) {
+    if (!this.cecModule) {
       throw new Error('Módulo nativo CecModule não foi registrado.');
     }
   }

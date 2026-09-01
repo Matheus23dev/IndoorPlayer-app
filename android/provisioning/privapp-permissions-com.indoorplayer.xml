@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<permissions>
+    <privapp-permissions package="com.indoorplayer">
+        <permission name="android.permission.HDMI_CEC" />
+    </privapp-permissions>
+</permissions>

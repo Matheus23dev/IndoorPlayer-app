@@ -495,6 +495,25 @@ class PlayerEngine {
       // operacional da engine é recriado. Reinicie a reprodução da playlist
       // já carregada para não permanecer com a tela preta após o stop acima.
       playbackManager.load(playlistManager.getCurrent());
+    } else if (playbackManager.ensurePlaying(playlistManager.getCurrent())) {
+      playerEventLogger.log({
+        event: 'PLAYBACK_RECOVERED',
+        category: 'PLAYBACK',
+        level: 'SUCCESS',
+        message: 'A reprodução da playlist foi recuperada automaticamente.',
+        metadata: {
+          schedule: occurrence.scheduleName,
+          playlist: playlist.name,
+          occurrenceId: occurrence.occurrenceId,
+        },
+        dedupeKey: `playback-recovered:${occurrence.occurrenceId}`,
+        dedupeWindowMs: 30_000,
+      });
+
+      console.log('[PLAYBACK] Playlist recuperada automaticamente:', {
+        occurrenceId: occurrence.occurrenceId,
+        playlistId: playlist.id,
+      });
     }
   }
 

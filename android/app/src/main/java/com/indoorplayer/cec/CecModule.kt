@@ -93,6 +93,53 @@ class CecModule(
     }
 
     @ReactMethod
+    fun getCapabilities(
+        promise: Promise,
+    ) {
+        try {
+            val capabilities =
+                cecExecutor.getCapabilities()
+
+            promise.resolve(
+                Arguments
+                    .createMap()
+                    .apply {
+                        putBoolean(
+                            "android",
+                            capabilities.android,
+                        )
+                        putBoolean(
+                            "hdmiCecFeature",
+                            capabilities.hdmiCecFeature,
+                        )
+                        putBoolean(
+                            "hdmiCecPermissionGranted",
+                            capabilities.hdmiCecPermissionGranted,
+                        )
+                        putBoolean(
+                            "privilegedApp",
+                            capabilities.privilegedApp,
+                        )
+                        putBoolean(
+                            "rootFallbackAvailable",
+                            capabilities.rootFallbackAvailable,
+                        )
+                        putString(
+                            "executionMode",
+                            capabilities.executionMode,
+                        )
+                    },
+            )
+        } catch (error: Throwable) {
+            promise.reject(
+                "CEC_CAPABILITIES_FAILED",
+                error.message,
+                error,
+            )
+        }
+    }
+
+    @ReactMethod
     fun queryPowerStatus(
         promise: Promise,
     ) {
@@ -222,6 +269,11 @@ class CecModule(
                 putString(
                     "executable",
                     result.executable,
+                )
+
+                putString(
+                    "executionMode",
+                    result.executionMode,
                 )
 
                 putString(

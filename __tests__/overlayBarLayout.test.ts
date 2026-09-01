@@ -113,7 +113,7 @@ describe('layout das barras do player', () => {
     });
   });
 
-  test('compensa a mÃ©trica visual do texto apenas nas barras horizontais', () => {
+  test('compensa a métrica visual do texto apenas nas barras horizontais', () => {
     expect(getOverlayTextOpticalOffsetY('BOTTOM', 40, 1)).toBe(-3.2);
     expect(getOverlayTextOpticalOffsetY('TOP', 120, 1)).toBe(-4);
     expect(getOverlayTextOpticalOffsetY('LEFT', 40, 1)).toBe(0);

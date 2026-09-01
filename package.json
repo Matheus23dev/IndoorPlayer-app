@@ -5,14 +5,17 @@
   "scripts": {
     "android": "react-native run-android",
     "android:release": "cd android && gradlew.bat assembleRelease",
+    "android:release:production": "cd android && gradlew.bat assembleRelease -PrequireReleaseSigning=true",
     "ios": "react-native run-ios",
     "lint": "eslint App.tsx index.js jest.setup.js src __tests__ --ext .js,.ts,.tsx",
+    "format": "prettier --write App.tsx index.js jest.setup.js src __tests__",
+    "format:check": "prettier --check App.tsx index.js jest.setup.js src __tests__",
     "postinstall": "patch-package",
     "start": "react-native start",
     "test": "jest",
     "test:ci": "jest --runInBand",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run typecheck && npm run lint && npm run test:ci"
+    "validate": "npm run format:check && npm run typecheck && npm run lint && npm run test:ci"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -32,9 +35,9 @@
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
-    "@react-native-community/cli": "20.1.0",
-    "@react-native-community/cli-platform-android": "20.1.0",
-    "@react-native-community/cli-platform-ios": "20.1.0",
+    "@react-native-community/cli": "20.2.0",
+    "@react-native-community/cli-platform-android": "20.2.0",
+    "@react-native-community/cli-platform-ios": "20.2.0",
     "@react-native/babel-preset": "0.85.3",
     "@react-native/eslint-config": "0.85.3",
     "@react-native/jest-preset": "^0.85.3",
@@ -52,6 +55,6 @@
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">= 22.11.0"
+    "node": ">=22.13.0"
   }
 }

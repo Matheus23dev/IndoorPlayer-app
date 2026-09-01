@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { io, type Socket } from 'socket.io-client';
 
 import { api } from '../../../core/api/client';
@@ -26,6 +27,10 @@ interface DeviceStatusResponse {
   code: string;
   name: string | null;
   isLinked: boolean;
+}
+
+interface ApiErrorResponse {
+  message?: string | string[];
 }
 
 export type DeviceSessionEndedEvent = DeviceSessionEvent;
@@ -248,10 +253,10 @@ class DeviceSocketManager {
       }
 
       await this.reconnectIfNeeded();
-    } catch (error: any) {
-      const status = error?.response?.status;
+    } catch (error: unknown) {
+      const errorInfo = this.getHttpErrorInfo(error);
 
-      if (status === 404) {
+      if (errorInfo.status === 404) {
         await this.triggerSessionEnded(
           this.createSessionEvent('DELETED', false),
         );
@@ -260,12 +265,8 @@ class DeviceSocketManager {
       }
 
       console.log('[SOCKET] Falha ao verificar sessão após desconexão:', {
-        status: status ?? null,
-
-        message:
-          error?.response?.data?.message ??
-          error?.message ??
-          'Erro desconhecido',
+        status: errorInfo.status,
+        message: errorInfo.message,
       });
 
       this.scheduleServerDisconnectCheck();
@@ -277,11 +278,8 @@ class DeviceSocketManager {
         message:
           'N\u00e3o foi poss\u00edvel verificar a sess\u00e3o ap\u00f3s a desconex\u00e3o.',
         metadata: {
-          status: status ?? null,
-          error:
-            error?.response?.data?.message ??
-            error?.message ??
-            'Erro desconhecido',
+          status: errorInfo.status,
+          error: errorInfo.message,
         },
         dedupeKey: 'session-verification-failed',
         dedupeWindowMs: 30_000,
@@ -408,6 +406,24 @@ class DeviceSocketManager {
 
   private getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
+  }
+
+  private getHttpErrorInfo(error: unknown) {
+    if (!axios.isAxiosError<ApiErrorResponse>(error)) {
+      return {
+        status: null,
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+
+    const responseMessage = error.response?.data?.message;
+
+    return {
+      status: error.response?.status ?? null,
+      message: Array.isArray(responseMessage)
+        ? responseMessage.join(' ')
+        : responseMessage || error.message || 'Erro desconhecido',
+    };
   }
 
   private getSocketUrl() {

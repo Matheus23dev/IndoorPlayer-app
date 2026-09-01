@@ -121,7 +121,7 @@ class CacheManager {
 
       return true;
     } catch (error) {
-      console.log('[CACHE] Erro ao validar mÃ­dias adicionais:', error);
+      console.log('[CACHE] Erro ao validar mídias adicionais:', error);
 
       return false;
     }
